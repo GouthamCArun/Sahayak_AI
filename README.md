@@ -265,21 +265,6 @@ flutter run
 - **Research collaboration** with educational institutions
 - **International adaptation** for similar contexts
 
-## 👥 **Team**
-
-- **AI/ML Engineers** - Multi-agent system development
-- **Flutter Developers** - Cross-platform mobile app
-- **Backend Engineers** - Scalable API and processing
-- **UX/UI Designers** - Rural-optimized interface
-- **Education Experts** - Pedagogical content validation
-
-## 📞 **Contact**
-
-- **Email**: sahaayak.ai@example.com
-- **GitHub**: [github.com/sahaayak-ai](https://github.com/sahaayak-ai)
-- **Demo**: [demo.sahaayak.ai](https://demo.sahaayak.ai)
-
----
 
 **Built with ❤️ for Rural Education in India**
 
