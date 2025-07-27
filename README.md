@@ -157,12 +157,12 @@ User Request → OrchestratorAgent → Specialized Agents → Coordinated Respon
 
 | Dashboard | Content Generation | Worksheet Creation |
 |-----------|-------------------|-------------------|
-| ![Dashboard](screenshots/dashboard.png) | ![Content Generation](screenshots/content_generation.png) | ![Worksheet Creation](screenshots/worksheet_creation.png) |
+| ![Dashboard](Screenshot_1753594907.png) | ![Content Generation](Screenshot_1753594946.png) | ![AI Quiz Generator](Screenshot_1753594975.png) |
 | *Main interface* | *AI-generated content* | *Image-based worksheets* |
 
 | Reading Assessment | Visual Aids | AI Chat | Lesson Planning |
 |-------------------|-------------|---------|-----------------|
-| ![Reading Assessment](screenshots/reading_assessment.png) | ![Visual Aids](screenshots/visual_aids.png) | ![AI Chat](screenshots/ai_chat.png) | ![Lesson Planning](screenshots/lesson_planning.png) |
+| ![Week Planner](Screenshot_1753595007.png) | ![MultiLingual Contents](Screenshot_1753595149.png) | ![Lesson planner](Screenshot_1753595390.png) |
 | *Audio assessment* | *Mermaid diagrams* | *Intelligent chat* | *AI lesson plans* |
 
 </div>
