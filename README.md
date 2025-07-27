@@ -11,6 +11,26 @@
 
 Sahaayak AI is a **revolutionary multi-agent AI system** designed to bridge the educational gap in rural India. Our solution leverages cutting-edge AI agents to provide personalized, culturally-relevant educational content and support for teachers and students in low-resource settings.
 
+## 📌 **Why We Chose This Problem**
+
+While researching rural education challenges, we encountered the **Multi-Grade Multi-Level (MGML)** teaching model, widely adopted in Indian government schools. MGML benefits students by encouraging collaborative and self-paced learning. However, we found that **teachers often struggle** in these classrooms due to:
+
+- The **difficulty of handling multiple grade levels simultaneously**
+- Lack of **personalized content creation tools**
+- **Time constraints** and **curriculum overload**
+- **Cultural disconnect** in available learning materials
+- Inability to conduct **individual assessments** efficiently
+
+This made it clear that the **teacher—not just the student—needs support**.
+
+### 🧠 **Our Insight:**
+> *"If MGML is good for students, how can we make it equally effective for teachers?"*
+
+This led us to the **problem statement**:  
+> *"Empowering teachers in multi-grade classrooms using AI to simplify content creation, assessment, and planning."*
+
+Sahaayak AI was built to be a **virtual co-teacher, helping educators focus on what matters most—student growth**.
+
 ### 🎯 **Problem Statement**
 - **Limited Resources**: Rural schools lack access to quality educational materials
 - **Teacher Workload**: Overburdened teachers need automated content generation
@@ -63,6 +83,9 @@ User Request → OrchestratorAgent → Specialized Agents → Coordinated Respon
 - **OpenCV & PIL** - Image processing
 - **Mermaid.js** - Diagram generation
 - **Markdown** - Content formatting
+- **Vertex AI** - Advanced AI capabilities
+- **Firebase** - Backend services
+- **Google Vision** - Image analysis
 
 ## 🌟 **Key Features**
 
@@ -134,7 +157,7 @@ User Request → OrchestratorAgent → Specialized Agents → Coordinated Respon
 
 ## 🎬 **Demo Video**
 
-[![Sahaayak AI Demo](https://img.youtube.com/vi/DEMO_VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=DEMO_VIDEO_ID)
+[![Sahaayak AI Demo](https://img.youtube.com/vi/O2RJiExZtkY/0.jpg)](https://www.youtube.com/watch?v=O2RJiExZtkY)
 
 **Watch our full demo showcasing the agentic AI system in action!**
 
@@ -146,7 +169,7 @@ User Request → OrchestratorAgent → Specialized Agents → Coordinated Respon
 - 🎨 Visual diagram generation
 - 💬 AI chat with markdown rendering
 
-**[▶️ Watch Demo Video](https://www.youtube.com/watch?v=DEMO_VIDEO_ID)**
+**[▶️ Watch Demo Video](https://www.youtube.com/watch?v=O2RJiExZtkY)**
 
 ## 🚀 **Quick Start**
 
