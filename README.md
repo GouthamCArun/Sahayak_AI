@@ -7,11 +7,25 @@
 [![Gemini AI](https://img.shields.io/badge/Gemini%20AI-1.5%20Flash-orange.svg)](https://ai.google.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+## 🎬 **Watch Our Demo**
+
+[![Sahaayak AI Demo](https://img.youtube.com/vi/O2RJiExZtkY/0.jpg)](https://www.youtube.com/watch?v=O2RJiExZtkY)
+
+**[▶️ Watch Full Demo Video](https://www.youtube.com/watch?v=O2RJiExZtkY)**
+
+<div align="center">
+
 ## 🚀 **Hackathon Solution Overview**
+
+</div>
 
 Sahaayak AI is a **revolutionary multi-agent AI system** designed to bridge the educational gap in rural India. Our solution leverages cutting-edge AI agents to provide personalized, culturally-relevant educational content and support for teachers and students in low-resource settings.
 
+<div align="center">
+
 ## 📌 **Why We Chose This Problem**
+
+</div>
 
 While researching rural education challenges, we encountered the **Multi-Grade Multi-Level (MGML)** teaching model, widely adopted in Indian government schools. MGML benefits students by encouraging collaborative and self-paced learning. However, we found that **teachers often struggle** in these classrooms due to:
 
@@ -42,7 +56,11 @@ Sahaayak AI was built to be a **virtual co-teacher, helping educators focus on w
 
 We've built a **sophisticated multi-agent AI system** that works collaboratively to solve these challenges:
 
+<div align="center">
+
 ## 🤖 **Agentic AI Architecture**
+
+</div>
 
 ### **Core AI Agents**
 
@@ -61,7 +79,11 @@ We've built a **sophisticated multi-agent AI system** that works collaboratively
 User Request → OrchestratorAgent → Specialized Agents → Coordinated Response
 ```
 
+<div align="center">
+
 ## 🏗️ **Technical Architecture**
+
+</div>
 
 ### **Frontend (Flutter)**
 - **Cross-platform mobile app** for Android/iOS
@@ -87,7 +109,11 @@ User Request → OrchestratorAgent → Specialized Agents → Coordinated Respon
 - **Firebase** - Backend services
 - **Google Vision** - Image analysis
 
+<div align="center">
+
 ## 🌟 **Key Features**
+
+</div>
 
 ### **1. 📚 Intelligent Content Generation**
 - **Multi-language support** (English, Hindi, Marathi, Tamil, Bengali, Gujarati, Kannada, Telugu)
@@ -127,49 +153,19 @@ User Request → OrchestratorAgent → Specialized Agents → Coordinated Respon
 
 ## 📱 **Screenshots**
 
-### **Main Dashboard**
-![Dashboard](screenshots/dashboard.png)
-*Main interface showing all available features*
+<div align="center">
 
-### **Content Generation**
-![Content Generation](screenshots/content_generation.png)
-*AI-generated educational content with markdown rendering*
+| Dashboard | Content Generation | Worksheet Creation |
+|-----------|-------------------|-------------------|
+| ![Dashboard](screenshots/dashboard.png) | ![Content Generation](screenshots/content_generation.png) | ![Worksheet Creation](screenshots/worksheet_creation.png) |
+| *Main interface* | *AI-generated content* | *Image-based worksheets* |
 
-### **Worksheet Creation**
-![Worksheet Creation](screenshots/worksheet_creation.png)
-*Image-based worksheet generation with cultural context*
+| Reading Assessment | Visual Aids | AI Chat | Lesson Planning |
+|-------------------|-------------|---------|-----------------|
+| ![Reading Assessment](screenshots/reading_assessment.png) | ![Visual Aids](screenshots/visual_aids.png) | ![AI Chat](screenshots/ai_chat.png) | ![Lesson Planning](screenshots/lesson_planning.png) |
+| *Audio assessment* | *Mermaid diagrams* | *Intelligent chat* | *AI lesson plans* |
 
-### **Reading Assessment**
-![Reading Assessment](screenshots/reading_assessment.png)
-*Audio-based reading fluency assessment with detailed feedback*
-
-### **Visual Aids**
-![Visual Aids](screenshots/visual_aids.png)
-*Mermaid diagram generation for visual learning*
-
-### **AI Chat**
-![AI Chat](screenshots/ai_chat.png)
-*Intelligent chat assistant with markdown rendering*
-
-### **Lesson Planning**
-![Lesson Planning](screenshots/lesson_planning.png)
-*AI-generated lesson plans with cultural adaptation*
-
-## 🎬 **Demo Video**
-
-[![Sahaayak AI Demo](https://img.youtube.com/vi/O2RJiExZtkY/0.jpg)](https://www.youtube.com/watch?v=O2RJiExZtkY)
-
-**Watch our full demo showcasing the agentic AI system in action!**
-
-*Features demonstrated:*
-- 🤖 Multi-agent AI collaboration
-- 📚 Content generation with cultural adaptation
-- 🎯 Real-time reading assessment
-- 📝 Image-to-worksheet conversion
-- 🎨 Visual diagram generation
-- 💬 AI chat with markdown rendering
-
-**[▶️ Watch Demo Video](https://www.youtube.com/watch?v=O2RJiExZtkY)**
+</div>
 
 ## 🚀 **Quick Start**
 
