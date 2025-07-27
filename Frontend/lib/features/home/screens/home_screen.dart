@@ -16,6 +16,7 @@ import '../../ask_ai/screens/ask_ai_screen.dart';
 import '../../visual_aids/screens/visual_aids_screen.dart';
 import '../../reading_assessment/screens/reading_assessment_screen.dart';
 import '../../weekly_planner/screens/weekly_planner_screen.dart';
+import '../../quiz_generator/screens/quiz_generator_screen.dart';
 
 /// Home screen matching the beautiful UI design
 ///
@@ -96,10 +97,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onTap: () => _navigateToFeature('visual_aids'),
       ),
       FeatureCardData(
-        title: 'Reading\nAssessment',
-        color: AppTheme.accentOrange,
-        illustration: 'reading_assessment',
-        onTap: () => _navigateToFeature('reading_assessment'),
+        title: 'Quiz\nGenerator',
+        color: AppTheme.primaryBlue,
+        illustration: 'quiz_generator',
+        onTap: () => _navigateToFeature('quiz_generator'),
       ),
       FeatureCardData(
         title: 'Weekly\nPlanner',
@@ -212,8 +213,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return Icons.chat;
       case 'visual_aids':
         return Icons.palette;
-      case 'reading_assessment':
-        return Icons.record_voice_over;
+      case 'quiz_generator':
+        return Icons.quiz;
       case 'weekly_planner':
         return Icons.calendar_today;
       default:
@@ -235,8 +236,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case 'visual_aids':
         Navigator.pushNamed(context, '/visual-aids');
         break;
-      case 'reading_assessment':
-        Navigator.pushNamed(context, '/reading-assessment');
+      case 'quiz_generator':
+        Navigator.pushNamed(context, '/quiz-generator');
         break;
       case 'weekly_planner':
         Navigator.pushNamed(context, '/weekly-planner');

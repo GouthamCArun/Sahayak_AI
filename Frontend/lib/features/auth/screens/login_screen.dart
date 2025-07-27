@@ -5,7 +5,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  final VoidCallback? onLoginSuccess;
+
+  const LoginScreen({super.key, this.onLoginSuccess});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -70,47 +72,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Column(
       children: [
         Container(
-          width: 100,
-          height: 100,
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppTheme.primaryPink, AppTheme.primaryPurple],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            shape: BoxShape.circle,
+            color: AppTheme.primaryBlue,
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryPink.withOpacity(0.3),
+                color: AppTheme.primaryBlue.withOpacity(0.3),
                 blurRadius: 20,
-                spreadRadius: 5,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: const Icon(
             Icons.school,
-            size: 50,
+            size: 40,
             color: Colors.white,
           ),
         ),
         const SizedBox(height: 24),
         Text(
-          'Welcome to Sahaayak AI',
+          'Welcome Back!',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
             color: AppTheme.textPrimary,
           ),
-          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
-          'Your intelligent teaching assistant for rural education',
+          'Sign in to continue to Sahaayak AI',
           style: TextStyle(
             fontSize: 16,
             color: AppTheme.textSecondary,
           ),
-          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -126,37 +122,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
-              labelText: 'Email Address',
+              labelText: 'Email',
               hintText: 'Enter your email',
               prefixIcon:
-                  Icon(Icons.email_outlined, color: AppTheme.primaryPink),
+                  Icon(Icons.email_outlined, color: AppTheme.primaryBlue),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: AppTheme.lightGray),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: AppTheme.primaryPink),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
               ),
               filled: true,
-              fillColor: AppTheme.surfaceColor,
+              fillColor: Colors.white,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please enter your email';
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                  .hasMatch(value)) {
+              if (!value.contains('@')) {
                 return 'Please enter a valid email';
               }
               return null;
             },
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           // Password Field
           TextFormField(
@@ -166,7 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               labelText: 'Password',
               hintText: 'Enter your password',
               prefixIcon:
-                  Icon(Icons.lock_outlined, color: AppTheme.primaryPink),
+                  Icon(Icons.lock_outlined, color: AppTheme.primaryBlue),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword ? Icons.visibility : Icons.visibility_off,
@@ -179,18 +171,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 },
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: AppTheme.lightGray),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: AppTheme.primaryPink),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
               ),
               filled: true,
-              fillColor: AppTheme.surfaceColor,
+              fillColor: Colors.white,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -213,7 +202,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _signIn,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.primaryPink,
+          backgroundColor: AppTheme.primaryBlue,
           foregroundColor: Colors.white,
           elevation: 2,
           shape: RoundedRectangleBorder(
@@ -241,7 +230,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          'Don\'t have an account? ',
+          "Don't have an account? ",
           style: TextStyle(
             color: AppTheme.textSecondary,
           ),
@@ -253,7 +242,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Text(
             'Sign Up',
             style: TextStyle(
-              color: AppTheme.primaryPink,
+              color: AppTheme.primaryBlue,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -333,6 +322,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+
+      // Call success callback for mock auth
+      widget.onLoginSuccess?.call();
 
       // Navigation handled by AuthWrapper
     } catch (e) {

@@ -7,11 +7,32 @@ import '../../../core/providers/auth_provider.dart';
 import '../../home/screens/home_screen.dart';
 import 'login_screen.dart';
 
+/// Provider to track mock authentication state
+final mockAuthStateProvider = StateProvider<bool>((ref) => false);
+
 class AuthWrapper extends ConsumerWidget {
   const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Check if we're using mock authentication
+    final authService = ref.read(authServiceProvider);
+    final isMockLoggedIn = ref.watch(mockAuthStateProvider);
+
+    // For mock auth, use our custom state
+    if (AuthService.useMockAuth) {
+      if (isMockLoggedIn) {
+        return const HomeScreen();
+      } else {
+        return LoginScreen(
+          onLoginSuccess: () {
+            ref.read(mockAuthStateProvider.notifier).state = true;
+          },
+        );
+      }
+    }
+
+    // For real Firebase auth, use the stream
     final authState = ref.watch(authStateProvider);
 
     return authState.when(
@@ -19,12 +40,17 @@ class AuthWrapper extends ConsumerWidget {
         if (user != null) {
           return const HomeScreen();
         } else {
-          return const LoginScreen();
+          return LoginScreen(
+            onLoginSuccess: () {
+              // This will be handled by Firebase auth state changes
+            },
+          );
         }
       },
       loading: () => const SplashScreen(),
       error: (error, stackTrace) {
         return Scaffold(
+          backgroundColor: AppTheme.backgroundColor,
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -32,35 +58,39 @@ class AuthWrapper extends ConsumerWidget {
                 Icon(
                   Icons.error_outline,
                   size: 64,
-                  color: Colors.red[400],
+                  color: AppTheme.accentOrange,
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Authentication Error',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  error.toString(),
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    error.toString(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () {
-                    // Restart the app
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                          builder: (context) => const AuthWrapper()),
-                      (route) => false,
-                    );
+                    // Retry authentication
+                    ref.invalidate(authStateProvider);
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryBlue,
+                    foregroundColor: Colors.white,
+                  ),
                   child: const Text('Retry'),
                 ),
               ],
@@ -72,6 +102,7 @@ class AuthWrapper extends ConsumerWidget {
   }
 }
 
+/// Splash screen widget
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
@@ -83,22 +114,18 @@ class SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // App Logo/Icon
+            // App Logo
             Container(
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primaryPink, AppTheme.primaryPurple],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
+                color: AppTheme.primaryBlue,
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryPink.withOpacity(0.3),
+                    color: AppTheme.primaryBlue.withOpacity(0.3),
                     blurRadius: 20,
-                    spreadRadius: 5,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
@@ -108,11 +135,8 @@ class SplashScreen extends StatelessWidget {
                 color: Colors.white,
               ),
             ),
-
             const SizedBox(height: 32),
-
-            // App Name
-            const Text(
+            Text(
               'Sahaayak AI',
               style: TextStyle(
                 fontSize: 32,
@@ -120,31 +144,17 @@ class SplashScreen extends StatelessWidget {
                 color: AppTheme.textPrimary,
               ),
             ),
-
             const SizedBox(height: 8),
-
-            const Text(
-              'Your AI Teaching Assistant',
+            Text(
+              'AI-Powered Teaching Assistant',
               style: TextStyle(
                 fontSize: 16,
                 color: AppTheme.textSecondary,
               ),
             ),
-
             const SizedBox(height: 48),
-
-            // Loading Indicator
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryPink),
-            ),
-
-            const SizedBox(height: 16),
-
-            const Text(
-              'Loading...',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-              ),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
             ),
           ],
         ),

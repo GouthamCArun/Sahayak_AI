@@ -1,19 +1,22 @@
+import json
 import base64
 import io
 import asyncio
 import tempfile
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
+from dataclasses import dataclass
+from enum import Enum
 from pydub import AudioSegment
 import speech_recognition as sr
 import librosa
 import numpy as np
 
-from .base_agent import BaseAgent
-from ..utils.logging import get_logger
+from utils.logging import get_logger
+from agents.base_agent import BaseAgent
 import google.generativeai as genai
 from google.cloud import speech
-from ..utils.config import settings
+from utils.config import settings
 
 class AssessmentAgent(BaseAgent):
     """
@@ -24,11 +27,24 @@ class AssessmentAgent(BaseAgent):
     """
     
     def __init__(self):
-        super().__init__("AssessmentAgent")
+        """Initialize the Assessment Agent with text and audio processing capabilities"""
+        super().__init__(name="Assessment Agent")
         
-        # Initialize Google Cloud Speech client
-        self.speech_client = speech.SpeechClient()
-        self.model = genai.GenerativeModel('gemini-pro')
+        # Configure Gemini
+        genai.configure(api_key=settings.GOOGLE_API_KEY)
+        self.model = genai.GenerativeModel('gemini-1.5-pro')
+        
+        # Initialize speech recognition
+        self.recognizer = sr.Recognizer()
+        
+        # Try to initialize Google Cloud Speech client (optional for development)
+        try:
+            self.speech_client = speech.SpeechClient()
+            self.logger.info("Google Cloud Speech client initialized successfully")
+        except Exception as e:
+            self.speech_client = None
+            self.logger.warning(f"Google Cloud Speech client not available: {e}")
+            self.logger.info("Using fallback speech recognition methods")
         
         # Reading assessment criteria
         self.assessment_criteria = {

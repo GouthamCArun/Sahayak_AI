@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Dict, Any, List, Optional
@@ -7,15 +7,15 @@ import base64
 from pydantic import BaseModel
 from datetime import datetime
 
-from ..agents.orchestrator import OrchestratorAgent
-from ..agents.content_generator import ContentGeneratorAgent
-from ..agents.material_adapter import MaterialAdapterAgent
-from ..agents.visual_aid import VisualAidAgent
-from ..agents.assessment import AssessmentAgent
-from ..agents.lesson_planner import LessonPlannerAgent
-from ..firebase.firebase_config import FirebaseManager
-from ..utils.logging import get_logger, log_request, log_ai_operation
-from ..utils.config import settings
+from agents.orchestrator import OrchestratorAgent
+from agents.content_generator import ContentGeneratorAgent
+from agents.material_adapter import MaterialAdapterAgent
+from agents.visual_aid import VisualAidAgent
+from agents.assessment import AssessmentAgent
+from agents.lesson_planner import LessonPlannerAgent
+from firebase.firebase_config import FirebaseManager
+from utils.logging import get_logger, log_request, log_ai_operation
+from utils.config import settings
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -27,7 +27,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,16 +45,20 @@ visual_aid = VisualAidAgent()
 assessment = AssessmentAgent()
 lesson_planner = LessonPlannerAgent()
 
-# Request/Response Models
+# Request/Response Models  
 class QueryRequest(BaseModel):
     type: str
     text: Optional[str] = None
     content_type: Optional[str] = None
-    topic: Optional[str] = None
-    language: str = "en"
+    topic: Optional[str] = None  
+    language: Optional[str] = "en"
     grade_level: Optional[str] = None
     context: Optional[Dict[str, Any]] = None
     additional_params: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        extra = "ignore"
+        str_strip_whitespace = True
 
 class AudioAssessmentRequest(BaseModel):
     audio: str  # Base64 encoded audio
@@ -104,43 +108,143 @@ async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "Sahaayak AI Backend"}
 
+# Debug endpoint to test request parsing
+@app.post("/api/v1/debug")
+async def debug_request(request: Request):
+    """Debug endpoint to see raw request data"""
+    try:
+        body = await request.body()
+        headers = dict(request.headers)
+        
+        return {
+            "raw_body": body.decode(),
+            "content_type": headers.get("content-type"),
+            "headers": headers,
+            "method": request.method,
+            "url": str(request.url)
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+# Simple test endpoint with same model
+@app.post("/api/v1/test")
+async def test_query(request: QueryRequest):
+    """Simple test endpoint to verify Pydantic parsing works"""
+    return {
+        "received": {
+            "type": request.type,
+            "topic": request.topic,
+            "content_type": request.content_type,
+            "language": request.language,
+            "grade_level": request.grade_level
+        },
+        "status": "success"
+    }
+
+# Raw endpoint that bypasses Pydantic validation
+@app.post("/api/v1/generate")
+async def generate_story_raw(request: Request):
+    """Raw endpoint that bypasses Pydantic validation for content generation"""
+    try:
+        # Parse raw JSON manually
+        body = await request.body()
+        data = json.loads(body.decode())
+        
+        logger.info(f"Raw endpoint received: {data}")
+        
+        # Extract fields manually
+        content_type = data.get("content_type", "story")
+        topic = data.get("topic", "")
+        language = data.get("language", "en")
+        grade_level = data.get("grade_level", "grade_3_4")
+        
+        if not topic:
+            return {"error": "Topic is required"}
+        
+        # Prepare request for content generator
+        content_request = {
+            "content_type": content_type,
+            "topic": topic,
+            "language": language,
+            "grade_level": grade_level,
+            "additional_details": ""
+        }
+        
+        logger.info(f"Calling ContentGenerator with: {content_request}")
+        
+        # Call ContentGenerator directly
+        result = await content_generator.execute_with_monitoring(content_request)
+        
+        logger.info(f"Generated content keys: {list(result.keys()) if isinstance(result, dict) else 'Not dict'}")
+        
+        return result
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parsing failed: {str(e)}")
+        return {"error": f"Invalid JSON: {str(e)}"}
+    except Exception as e:
+        logger.error(f"Story generation failed: {str(e)}")
+        return {"error": f"Generation failed: {str(e)}"}
+
 # Main query endpoint (orchestrated AI processing)
 @app.post("/api/v1/query")
 async def process_query(
-    request: QueryRequest,
-    user: dict = Depends(get_current_user)
+    request: QueryRequest
 ):
     """
-    Process user query through the orchestrator
+    Process user query for content generation using Gemini API
     
-    Handles various types of AI requests including content generation,
-    question answering, and knowledge explanation.
+    For content_type='story': Generates educational stories using Gemini
+    Supports multiple languages and grade levels
     """
     try:
-        log_request("query", request.dict())
+        logger.info(f"Processing {request.type} request: {request.topic}")
         
-        # Prepare request for orchestrator
-        orchestrator_request = {
-            "type": request.type,
-            "text": request.text,
-            "content_type": request.content_type,
-            "topic": request.topic,
-            "language": request.language,
-            "grade_level": request.grade_level,
-            "context": request.context or {},
-            "user_id": user["uid"],
-            **(request.additional_params or {})
-        }
+        # For content generation, route directly to ContentGenerator
+        if request.type == "content_generation":
+            # Prepare request for content generator
+            content_request = {
+                "content_type": request.content_type or "story",
+                "topic": request.topic,
+                "language": request.language,
+                "grade_level": request.grade_level,
+                "additional_details": request.additional_params.get("additional_details", "") if request.additional_params else ""
+            }
+            
+            logger.info(f"Generating {content_request['content_type']} about '{content_request['topic']}' for {content_request['grade_level']}")
+            
+            # Call ContentGenerator directly 
+            result = await content_generator.execute_with_monitoring(content_request)
+            
+            # Log what we're returning
+            logger.info(f"Content generated successfully. Keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
+            if isinstance(result, dict) and 'content' in result:
+                content_preview = str(result['content'])[:150] + "..." if len(str(result['content'])) > 150 else str(result['content'])
+                logger.info(f"Generated content preview: {content_preview}")
+            
+            # Save interaction
+            await _save_interaction("anonymous", "content_generation", content_request, result)
+            
+            return result
         
-        # Process through orchestrator
-        result = await orchestrator.execute_with_monitoring(orchestrator_request)
-        
-        # Save interaction to Firebase
-        await _save_interaction(user["uid"], "query", orchestrator_request, result)
-        
-        log_ai_operation("query_processed", {"type": request.type, "success": result.get("success", False)})
-        
-        return result
+        else:
+            # For other types, use orchestrator
+            orchestrator_request = {
+                "type": request.type,
+                "text": request.text or request.topic or "",
+                "content_type": request.content_type,
+                "topic": request.topic,
+                "language": request.language,
+                "grade_level": request.grade_level,
+                "context": request.context or {},
+                "user_id": "anonymous",
+                **(request.additional_params or {})
+            }
+            
+            result = await orchestrator.execute_with_monitoring(orchestrator_request)
+            await _save_interaction("anonymous", "query", orchestrator_request, result)
+            
+            return result
         
     except Exception as e:
         logger.error(f"Query processing failed: {str(e)}")
@@ -149,8 +253,7 @@ async def process_query(
 # Content generation endpoint
 @app.post("/api/v1/generate-content")
 async def generate_content(
-    request: QueryRequest,
-    user: dict = Depends(get_current_user)
+    request: QueryRequest
 ):
     """
     Generate educational content using ContentGeneratorAgent
@@ -159,8 +262,9 @@ async def generate_content(
     tailored for the specified grade level and language.
     """
     try:
-        log_request("generate_content", request.dict())
+        logger.info(f"Generating content: {request.content_type}")
         
+        # Prepare request for content generator
         content_request = {
             "content_type": request.content_type or "story",
             "topic": request.topic,
@@ -172,7 +276,7 @@ async def generate_content(
         result = await content_generator.execute_with_monitoring(content_request)
         
         # Save to Firebase
-        await _save_interaction(user["uid"], "content_generation", content_request, result)
+        await _save_interaction("anonymous", "content_generation", content_request, result)
         
         return result
         
@@ -183,8 +287,7 @@ async def generate_content(
 # Visual aid generation endpoint
 @app.post("/api/v1/generate-diagram")
 async def generate_visual_aid(
-    request: VisualAidRequest,
-    user: dict = Depends(get_current_user)
+    request: VisualAidRequest
 ):
     """
     Generate educational diagrams and visual aids
@@ -193,8 +296,9 @@ async def generate_visual_aid(
     flowcharts, timelines, and labeled diagrams.
     """
     try:
-        log_request("generate_diagram", request.dict())
+        logger.info(f"Generating diagram: {request.diagram_type}")
         
+        # Prepare request for visual aid agent
         visual_request = {
             "concept": request.concept,
             "diagram_type": request.diagram_type,
@@ -206,7 +310,7 @@ async def generate_visual_aid(
         result = await visual_aid.execute_with_monitoring(visual_request)
         
         # Save to Firebase
-        await _save_interaction(user["uid"], "visual_aid", visual_request, result)
+        await _save_interaction("anonymous", "visual_aid", visual_request, result)
         
         return result
         
@@ -216,9 +320,8 @@ async def generate_visual_aid(
 
 # Audio assessment endpoint
 @app.post("/api/v1/assess-audio")
-async def assess_reading(
-    request: AudioAssessmentRequest,
-    user: dict = Depends(get_current_user)
+async def assess_audio(
+    request: AudioAssessmentRequest
 ):
     """
     Assess student reading fluency from audio recording
@@ -227,7 +330,7 @@ async def assess_reading(
     detailed feedback and improvement suggestions.
     """
     try:
-        log_request("assess_audio", {"grade_level": request.grade_level, "language": request.language})
+        logger.info(f"Assessing audio: grade {request.grade_level}, language {request.language}")
         
         assessment_request = {
             "audio": request.audio,
@@ -240,7 +343,7 @@ async def assess_reading(
         result = await assessment.execute_with_monitoring(assessment_request)
         
         # Save to Firebase
-        await _save_interaction(user["uid"], "reading_assessment", assessment_request, result)
+        await _save_interaction("anonymous", "reading_assessment", assessment_request, result)
         
         return result
         
@@ -251,8 +354,7 @@ async def assess_reading(
 # Lesson plan generation endpoint
 @app.post("/api/v1/lesson-plan")
 async def generate_lesson_plan(
-    request: LessonPlanRequest,
-    user: dict = Depends(get_current_user)
+    request: LessonPlanRequest
 ):
     """
     Generate comprehensive lesson plans
@@ -261,8 +363,9 @@ async def generate_lesson_plan(
     and resources for multi-grade rural classrooms.
     """
     try:
-        log_request("lesson_plan", request.dict())
+        logger.info(f"Generating lesson plan: {request.subject} for grades {request.grade_levels}")
         
+        # Prepare lesson plan request
         lesson_request = {
             "subject": request.subject,
             "grade_levels": request.grade_levels,
@@ -275,7 +378,7 @@ async def generate_lesson_plan(
         result = await lesson_planner.execute_with_monitoring(lesson_request)
         
         # Save to Firebase
-        await _save_interaction(user["uid"], "lesson_planning", lesson_request, result)
+        await _save_interaction("anonymous", "lesson_planning", lesson_request, result)
         
         return result
         
@@ -285,9 +388,8 @@ async def generate_lesson_plan(
 
 # Worksheet generation endpoint
 @app.post("/api/v1/worksheet-adapter")
-async def generate_worksheet(
-    request: WorksheetRequest,
-    user: dict = Depends(get_current_user)
+async def adapt_worksheet(
+    request: WorksheetRequest
 ):
     """
     Generate worksheets from textbook images
@@ -296,7 +398,9 @@ async def generate_worksheet(
     and adapts them into worksheets for multiple grade levels.
     """
     try:
-        log_request("worksheet_adapter", {"target_grades": request.target_grades, "language": request.language})
+        logger.info(f"Adapting worksheet: grades {request.target_grades}, language {request.language}")
+        
+        # Process the worksheet image
         
         worksheet_request = {
             "image": request.image,
@@ -308,7 +412,7 @@ async def generate_worksheet(
         result = await material_adapter.execute_with_monitoring(worksheet_request)
         
         # Save to Firebase
-        await _save_interaction(user["uid"], "worksheet_generation", worksheet_request, result)
+        await _save_interaction("anonymous", "worksheet_generation", worksheet_request, result)
         
         return result
         
@@ -318,17 +422,14 @@ async def generate_worksheet(
 
 # User interaction history
 @app.get("/api/v1/history")
-async def get_user_history(
-    limit: int = 10,
-    user: dict = Depends(get_current_user)
-):
+async def get_user_history():
     """
     Get user's interaction history
     
     Returns recent AI interactions for the authenticated user.
     """
     try:
-        history = firebase_manager.get_interaction_history(user["uid"], limit)
+        history = firebase_manager.get_interaction_history("anonymous", 10) # Removed user dependency
         return {"history": history}
         
     except Exception as e:
@@ -337,29 +438,14 @@ async def get_user_history(
 
 # User profile management
 @app.get("/api/v1/profile")
-async def get_user_profile(user: dict = Depends(get_current_user)):
+async def get_user_profile():
     """Get user profile information"""
-    try:
-        profile = firebase_manager.get_user_profile(user["uid"])
-        return {"profile": profile}
-        
-    except Exception as e:
-        logger.error(f"Profile retrieval failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Profile retrieval failed: {str(e)}")
+    return {"message": "Profile endpoint - authentication disabled for testing"}
 
 @app.post("/api/v1/profile")
-async def update_user_profile(
-    profile_data: Dict[str, Any],
-    user: dict = Depends(get_current_user)
-):
+async def update_user_profile():
     """Update user profile information"""
-    try:
-        firebase_manager.update_user_profile(user["uid"], profile_data)
-        return {"success": True, "message": "Profile updated successfully"}
-        
-    except Exception as e:
-        logger.error(f"Profile update failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Profile update failed: {str(e)}")
+    return {"message": "Profile update - authentication disabled for testing"}
 
 # Agent capabilities
 @app.get("/api/v1/capabilities")
@@ -384,7 +470,7 @@ async def get_agent_capabilities():
 @app.post("/api/v1/upload")
 async def upload_file(
     file: UploadFile = File(...),
-    user: dict = Depends(get_current_user)
+    purpose: str = Form(...)
 ):
     """
     Upload file (image or audio) and return base64 encoded data
@@ -436,7 +522,7 @@ async def _save_interaction(
             "success": result.get("success", False)
         }
         
-        firebase_manager.save_interaction(user_id, interaction_data)
+        await firebase_manager.save_interaction(user_id, interaction_type, request_data, result)
         
     except Exception as e:
         logger.error(f"Failed to save interaction: {str(e)}")

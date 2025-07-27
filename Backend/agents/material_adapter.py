@@ -5,10 +5,10 @@ from PIL import Image
 import cv2
 import numpy as np
 
-from .base_agent import BaseAgent
-from ..utils.logging import get_logger
+from agents.base_agent import BaseAgent
+from utils.logging import get_logger
 import google.generativeai as genai
-from ..utils.config import settings
+from utils.config import settings
 
 class MaterialAdapterAgent(BaseAgent):
     """
@@ -20,7 +20,7 @@ class MaterialAdapterAgent(BaseAgent):
     
     def __init__(self):
         super().__init__("MaterialAdapterAgent")
-        self.model = genai.GenerativeModel('gemini-pro-vision')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
         
         # Worksheet templates for different grades
         self.worksheet_templates = {
@@ -58,22 +58,27 @@ class MaterialAdapterAgent(BaseAgent):
             "seasons": "Reference Indian seasons (monsoon, winter, summer)"
         }
 
-    async def process(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(
+        self, 
+        request_data: Dict[str, Any], 
+        user_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """
         Process textbook image and generate multi-grade worksheets
         
         Args:
-            request: Contains image data, target grades, and adaptation preferences
+            request_data: Contains image data, target grades, and adaptation preferences
+            user_context: Optional user context (not used in this agent)
             
         Returns:
             Dict containing worksheets for different grade levels
         """
         try:
             # Extract and validate input
-            image_data = request.get('image')
-            target_grades = request.get('target_grades', ['grade_3_4'])
-            language = request.get('language', 'en')
-            subject = request.get('subject', 'general')
+            image_data = request_data.get('image')
+            target_grades = request_data.get('target_grades', ['grade_3_4'])
+            language = request_data.get('language', 'en')
+            subject = request_data.get('subject', 'general')
             
             if not image_data:
                 raise ValueError("No image data provided")
@@ -339,7 +344,7 @@ class MaterialAdapterAgent(BaseAgent):
             """
             
             # Generate worksheet using Gemini
-            model = genai.GenerativeModel('gemini-pro')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(worksheet_prompt)
             
             worksheet = {
@@ -397,7 +402,7 @@ class MaterialAdapterAgent(BaseAgent):
             Focus on practical, low-resource solutions for rural Indian classrooms.
             """
             
-            model = genai.GenerativeModel('gemini-pro')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(suggestions_prompt)
             
             return {

@@ -28,6 +28,34 @@ class _AskAIScreenState extends ConsumerState<AskAIScreen> {
   void initState() {
     super.initState();
     _addWelcomeMessage();
+
+    // Check for pre-filled text from navigation arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['prefilledText'] != null) {
+        final prefilledText = args['prefilledText'] as String;
+        final context = args['context'] as String?;
+
+        if (prefilledText.isNotEmpty) {
+          _inputController.text = prefilledText;
+
+          // Add a context message if coming from reading assessment
+          if (context == 'reading_assessment') {
+            _messages.add(
+              chat_widget.ChatMessage(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                text:
+                    "I've transcribed your audio reading. Here's what I heard:\n\n\"$prefilledText\"\n\nWould you like me to help you with this text or answer any questions about it?",
+                isUser: false,
+                timestamp: DateTime.now(),
+                avatar: '🤖',
+              ),
+            );
+          }
+        }
+      }
+    });
   }
 
   @override
@@ -136,7 +164,7 @@ class _AskAIScreenState extends ConsumerState<AskAIScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      gradient:  const LinearGradient(
+                      gradient: const LinearGradient(
                         colors: [AppTheme.primaryGreen, AppTheme.primaryBlue],
                       ),
                       borderRadius: BorderRadius.circular(20),

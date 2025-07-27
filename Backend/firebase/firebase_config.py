@@ -161,6 +161,11 @@ class FirebaseManager:
                 "response": response_data,
             }
             
+            # Skip Firebase operations if not initialized (for development)
+            if not self._db_ref:
+                logger.info(f"Firebase not initialized, skipping interaction save", uid=uid, type=interaction_type)
+                return "mock_interaction_id"
+                
             # Save to user's interaction history
             interactions_ref = self._db_ref.child("interactions").child(uid)
             new_interaction_ref = interactions_ref.push(interaction_data)

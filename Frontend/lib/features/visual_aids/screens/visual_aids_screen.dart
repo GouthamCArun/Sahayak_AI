@@ -19,10 +19,9 @@ class _VisualAidsScreenState extends ConsumerState<VisualAidsScreen> {
   final TextEditingController _conceptController = TextEditingController();
   bool _isLoading = false;
   Map<String, dynamic>? _generatedDiagram;
-  String _selectedDiagramType = 'auto';
+  String _selectedDiagramType = 'simple';
   String _selectedLanguage = 'en';
   String _selectedGradeLevel = 'grade_3_4';
-  String _selectedSubject = 'general';
 
   final List<Map<String, String>> _languages = [
     {'code': 'en', 'name': 'English'},
@@ -31,14 +30,8 @@ class _VisualAidsScreenState extends ConsumerState<VisualAidsScreen> {
     {'code': 'ta', 'name': 'தமிழ்'},
     {'code': 'bn', 'name': 'বাংলা'},
     {'code': 'gu', 'name': 'ગુજરાતી'},
-  ];
-
-  final List<Map<String, String>> _subjects = [
-    {'code': 'general', 'name': 'General'},
-    {'code': 'mathematics', 'name': 'Mathematics'},
-    {'code': 'science', 'name': 'Science'},
-    {'code': 'language', 'name': 'Language Arts'},
-    {'code': 'social_studies', 'name': 'Social Studies'},
+    {'code': 'kn', 'name': 'ಕನ್ನಡ'},
+    {'code': 'ml', 'name': 'മലയാളം'},
   ];
 
   final List<Map<String, String>> _gradeLevels = [
@@ -235,21 +228,6 @@ class _VisualAidsScreenState extends ConsumerState<VisualAidsScreen> {
                     children: [
                       Expanded(
                         child: _buildDropdownField(
-                          label: 'Subject',
-                          value: _selectedSubject,
-                          items: _subjects
-                              .map((subject) => DropdownMenuItem(
-                                    value: subject['code'],
-                                    child: Text(subject['name']!),
-                                  ))
-                              .toList(),
-                          onChanged: (value) =>
-                              setState(() => _selectedSubject = value!),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildDropdownField(
                           label: 'Grade Level',
                           value: _selectedGradeLevel,
                           items: _gradeLevels
@@ -387,6 +365,7 @@ class _VisualAidsScreenState extends ConsumerState<VisualAidsScreen> {
           value: value,
           items: items,
           onChanged: onChanged,
+          isExpanded: true, // Added to prevent overflow
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -402,8 +381,8 @@ class _VisualAidsScreenState extends ConsumerState<VisualAidsScreen> {
             ),
             filled: true,
             fillColor: AppTheme.surfaceColor,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 10), // Reduced padding
           ),
         ),
       ],
@@ -437,15 +416,18 @@ class _VisualAidsScreenState extends ConsumerState<VisualAidsScreen> {
         diagramType: _selectedDiagramType,
         language: _selectedLanguage,
         gradeLevel: _selectedGradeLevel,
-        subject: _selectedSubject,
       );
 
-      if (result['success'] == true) {
+      // Check if result contains diagram_description (new format)
+      if (result['diagram_description'] != null &&
+          result['diagram_description'].toString().isNotEmpty) {
         setState(() {
-          _generatedDiagram = result;
+          _generatedDiagram = Map<String, dynamic>.from(result);
         });
+      } else if (result['error'] != null) {
+        throw Exception(result['error']);
       } else {
-        throw Exception(result['error'] ?? 'Failed to generate diagram');
+        throw Exception('No diagram content received');
       }
     } catch (e) {
       if (mounted) {
@@ -465,10 +447,9 @@ class _VisualAidsScreenState extends ConsumerState<VisualAidsScreen> {
     setState(() {
       _generatedDiagram = null;
       _conceptController.clear();
-      _selectedDiagramType = 'auto';
+      _selectedDiagramType = 'simple';
       _selectedLanguage = 'en';
       _selectedGradeLevel = 'grade_3_4';
-      _selectedSubject = 'general';
     });
   }
 }

@@ -7,8 +7,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 /// and FastAPI backend with proper authentication.
 class ApiService {
   static late Dio _dio;
-  static const String baseUrl =
-      'http://localhost:8000/api/v1'; // Update for production
+  // Android emulator uses 10.0.2.2 to reach host machine
+  // iOS simulator can use localhost
+  static const String baseUrl = 'http://10.0.2.2:8001/api/v1'; // Flask backend
 
   /// Initialize the API service
   static Future<void> initialize() async {
@@ -66,7 +67,7 @@ class ApiService {
   }) async {
     try {
       final response = await authenticatedRequest(
-        '/query',
+        '/generate', // Updated to match Flask backend endpoint
         method: 'POST',
         data: {
           'type': 'content_generation',
@@ -77,6 +78,29 @@ class ApiService {
           ...?additionalParams,
         },
       );
+
+      // Debug logging
+      print('🔍 API Response received:');
+      print('Response type: ${response.data.runtimeType}');
+      if (response.data is Map) {
+        print('Response keys: ${(response.data as Map).keys.toList()}');
+        print(
+            'Has generated_text: ${(response.data as Map).containsKey('generated_text')}');
+        print('Has content: ${(response.data as Map).containsKey('content')}');
+        if ((response.data as Map).containsKey('generated_text')) {
+          final text = (response.data as Map)['generated_text'];
+          print('Generated text length: ${text?.toString().length ?? 0}');
+          final preview = text?.toString().substring(
+                  0,
+                  text.toString().length > 100
+                      ? 100
+                      : text.toString().length) ??
+              '';
+          print('Generated text preview: $preview...');
+        }
+      }
+      print('Full response: ${response.data}');
+
       return response.data;
     } catch (e) {
       throw _handleError(e);
@@ -109,22 +133,37 @@ class ApiService {
   /// Generate visual aid description
   static Future<Map<String, dynamic>> generateVisualAid({
     required String concept,
-    String diagramType = 'auto',
+    String diagramType = 'simple',
     String language = 'en',
     String gradeLevel = 'grade_3_4',
-    String subject = 'general',
   }) async {
     try {
-      final response = await _dio.post(
-        '/v1/generate-diagram',
+      final response = await authenticatedRequest(
+        '/visual-aids', // Updated to match Flask backend endpoint
+        method: 'POST',
         data: {
           'concept': concept,
           'diagram_type': diagramType,
           'language': language,
           'grade_level': gradeLevel,
-          'subject': subject,
         },
       );
+
+      // Debug logging for visual aids
+      print('🎨 Visual Aid Response received:');
+      print('Response type: ${response.data.runtimeType}');
+      if (response.data is Map) {
+        print('Response keys: ${(response.data as Map).keys.toList()}');
+        print(
+            'Has diagram_description: ${(response.data as Map).containsKey('diagram_description')}');
+        print(
+            'Has ascii_art: ${(response.data as Map).containsKey('ascii_art')}');
+        if ((response.data as Map).containsKey('diagram_description')) {
+          final desc = (response.data as Map)['diagram_description'];
+          print('Diagram description length: ${desc?.toString().length ?? 0}');
+        }
+      }
+
       return response.data;
     } catch (e) {
       throw _handleError(e);
@@ -140,7 +179,7 @@ class ApiService {
   }) async {
     try {
       final response = await _dio.post(
-        '/v1/worksheet-adapter',
+        '/worksheet-adapter',
         data: {
           'image': image,
           'target_grades': targetGrades,
@@ -164,7 +203,7 @@ class ApiService {
   }) async {
     try {
       final response = await _dio.post(
-        '/v1/assess-audio',
+        '/assess-reading',
         data: {
           'audio': audio,
           'expected_text': expectedText,
@@ -190,7 +229,7 @@ class ApiService {
   }) async {
     try {
       final response = await _dio.post(
-        '/v1/lesson-plan',
+        '/lesson-plan',
         data: {
           'subject': subject,
           'grade_levels': gradeLevels,
@@ -211,6 +250,58 @@ class ApiService {
     try {
       final response = await authenticatedRequest('/history');
       return List<Map<String, dynamic>>.from(response.data);
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Generate worksheet from topic
+  static Future<Map<String, dynamic>> generateTopicWorksheet({
+    required String topic,
+    String language = 'en',
+    String gradeLevel = 'grade_3_4',
+    String subject = 'general',
+    String worksheetType = 'mixed',
+  }) async {
+    try {
+      final response = await authenticatedRequest(
+        '/worksheet-maker',
+        method: 'POST',
+        data: {
+          'topic': topic,
+          'language': language,
+          'grade_level': gradeLevel,
+          'subject': subject,
+          'worksheet_type': worksheetType,
+        },
+      );
+
+      return response.data;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Generate quiz from topic
+  static Future<Map<String, dynamic>> generateQuiz({
+    required String topic,
+    String language = 'en',
+    String gradeLevel = 'grade_3_4',
+    int numQuestions = 10,
+  }) async {
+    try {
+      final response = await authenticatedRequest(
+        '/generate-quiz',
+        method: 'POST',
+        data: {
+          'topic': topic,
+          'language': language,
+          'grade_level': gradeLevel,
+          'num_questions': numQuestions,
+        },
+      );
+
+      return response.data;
     } catch (e) {
       throw _handleError(e);
     }

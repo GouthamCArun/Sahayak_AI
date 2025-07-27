@@ -1,11 +1,11 @@
+import json
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
-import json
 
-from .base_agent import BaseAgent
-from ..utils.logging import get_logger
+from utils.logging import get_logger
 import google.generativeai as genai
-from ..utils.config import settings
+from utils.config import settings
+from agents.base_agent import BaseAgent
 
 class LessonPlannerAgent(BaseAgent):
     """

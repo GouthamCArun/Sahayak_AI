@@ -16,6 +16,7 @@ import 'features/ask_ai/screens/ask_ai_screen.dart';
 import 'features/visual_aids/screens/visual_aids_screen.dart';
 import 'features/reading_assessment/screens/reading_assessment_screen.dart';
 import 'features/weekly_planner/screens/weekly_planner_screen.dart';
+import 'features/quiz_generator/screens/quiz_generator_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,6 +69,7 @@ class SahaayakAIApp extends ConsumerWidget {
         '/ask-ai': (context) => const AskAIScreen(),
         '/visual-aids': (context) => const VisualAidsScreen(),
         '/reading-assessment': (context) => const ReadingAssessmentScreen(),
+        '/quiz-generator': (context) => const QuizGeneratorScreen(),
         '/weekly-planner': (context) => const WeeklyPlannerScreen(),
       },
     );

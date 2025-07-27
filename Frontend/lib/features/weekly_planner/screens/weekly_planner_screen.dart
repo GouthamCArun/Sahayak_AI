@@ -7,6 +7,7 @@ import '../widgets/lesson_plan_card.dart';
 import '../widgets/subject_selector.dart';
 import '../widgets/week_selector.dart';
 import '../../shared/widgets/loading_overlay.dart';
+import '../../../shared/widgets/markdown_renderer.dart';
 
 class WeeklyPlannerScreen extends ConsumerStatefulWidget {
   const WeeklyPlannerScreen({super.key});
@@ -42,7 +43,9 @@ class _WeeklyPlannerScreenState extends ConsumerState<WeeklyPlannerScreen> {
     {'code': 'mr', 'name': 'मराठी'},
     {'code': 'ta', 'name': 'தமிழ்'},
     {'code': 'bn', 'name': 'বাংলা'},
-    {'code': 'gu', 'name': 'ગુજરાતી'},
+    {'code': 'gu', 'name': 'ગુজરાતી'},
+    {'code': 'kn', 'name': 'ಕನ್ನಡ'},
+    {'code': 'ml', 'name': 'മലയാളം'},
   ];
 
   final List<Map<String, String>> _gradeOptions = [
@@ -466,6 +469,7 @@ class _WeeklyPlannerScreenState extends ConsumerState<WeeklyPlannerScreen> {
           value: value,
           items: items,
           onChanged: onChanged,
+          isExpanded: true, // Added to prevent overflow
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -477,12 +481,12 @@ class _WeeklyPlannerScreenState extends ConsumerState<WeeklyPlannerScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppTheme.primaryGreen),
+              borderSide: BorderSide(color: AppTheme.primaryPink),
             ),
             filled: true,
             fillColor: AppTheme.surfaceColor,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 10), // Reduced padding
           ),
         ),
       ],
@@ -490,7 +494,7 @@ class _WeeklyPlannerScreenState extends ConsumerState<WeeklyPlannerScreen> {
   }
 
   Widget _buildPlanResult() {
-    final planData = _generatedPlan!['lesson_plan'] ?? {};
+    final content = _generatedPlan!['content'] ?? '';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -548,17 +552,47 @@ class _WeeklyPlannerScreenState extends ConsumerState<WeeklyPlannerScreen> {
 
           const SizedBox(height: 20),
 
-          // Daily Lessons
-          if (planData['detailed_lessons'] != null) ...[
-            ...((planData['detailed_lessons'] as List)
-                .asMap()
-                .entries
-                .map((entry) => LessonPlanCard(
-                      day: entry.key + 1,
-                      lesson: entry.value,
-                      subject: _selectedSubject,
-                    ))),
-          ],
+          // Lesson Plan Content
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.article,
+                        color: AppTheme.primaryGreen,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Lesson Plan',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (content.isNotEmpty)
+                    MarkdownRenderer(content: content)
+                  else
+                    Text(
+                      'No lesson plan content available',
+                      style: TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
 
           const SizedBox(height: 20),
 
@@ -674,12 +708,16 @@ class _WeeklyPlannerScreenState extends ConsumerState<WeeklyPlannerScreen> {
         resourceLevel: _resourceLevel,
       );
 
-      if (result['success'] == true) {
+      // Check if we have content in the response
+      if (result['content'] != null || result['error'] != null) {
+        if (result['error'] != null) {
+          throw Exception(result['error']);
+        }
         setState(() {
-          _generatedPlan = result;
+          _generatedPlan = Map<String, dynamic>.from(result);
         });
       } else {
-        throw Exception(result['error'] ?? 'Failed to generate lesson plan');
+        throw Exception('Failed to generate lesson plan: No content received');
       }
     } catch (e) {
       if (mounted) {

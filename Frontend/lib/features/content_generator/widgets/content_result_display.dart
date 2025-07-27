@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/markdown_renderer.dart';
 
 /// Content result display widget
 ///
@@ -24,37 +25,34 @@ class ContentResultDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Content Display
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Content Header
-                _buildContentHeader(),
-
-                const SizedBox(height: 20),
-
-                // Main Content
-                _buildMainContent(),
-
-                const SizedBox(height: 20),
-
-                // Metadata
-                _buildMetadata(),
-
-                const SizedBox(height: 100), // Space for action buttons
-              ],
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Scrollable content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min, // ← important
+                  children: [
+                    _buildContentHeader(),
+                    const SizedBox(height: 20),
+                    _buildMainContent(context), // no Expanded inside
+                    const SizedBox(height: 20),
+                    _buildMetadata(),
+                    const SizedBox(height: 100),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ),
 
-        // Action Buttons
-        _buildActionButtons(context),
-      ],
+            // Fixed buttons at the bottom
+            _buildActionButtons(context),
+          ],
+        ),
+      ),
     );
   }
 
@@ -63,7 +61,7 @@ class ContentResultDisplay extends StatelessWidget {
     final contentType = content['content_type'] ?? 'content';
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [AppTheme.primaryPink, AppTheme.primaryPink.withOpacity(0.8)],
@@ -90,14 +88,12 @@ class ContentResultDisplay extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
                 ),
               ),
             ],
@@ -117,77 +113,21 @@ class ContentResultDisplay extends StatelessWidget {
     );
   }
 
-  Widget _buildMainContent() {
+  Widget _buildMainContent(BuildContext context) {
     final generatedText = content['generated_text'] ??
         content['content'] ??
         'No content available';
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      width: MediaQuery.of(context).size.width,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: const Color(0xFFF5F7FB),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Generated Content',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.copy, size: 20),
-                onPressed: () => _copyToClipboard(generatedText),
-                tooltip: 'Copy to clipboard',
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          Text(
-            generatedText,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              height: 1.6,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-
-          // Learning objectives if available
-          if (content['learning_objectives'] != null) ...[
-            const SizedBox(height: 20),
-            _buildSection(
-                'Learning Objectives', content['learning_objectives']),
-          ],
-
-          // Key vocabulary if available
-          if (content['key_vocabulary'] != null) ...[
-            const SizedBox(height: 20),
-            _buildSection('Key Vocabulary', content['key_vocabulary']),
-          ],
-
-          // Activities if available
-          if (content['activities'] != null) ...[
-            const SizedBox(height: 20),
-            _buildSection('Activities', content['activities']),
-          ],
-        ],
+      child: MarkdownRenderer(
+        content: generatedText,
+        showCopyButton: false,
       ),
     );
   }
@@ -215,13 +155,11 @@ class ContentResultDisplay extends StatelessWidget {
                         Text('• ',
                             style: GoogleFonts.poppins(
                                 color: AppTheme.textSecondary)),
-                        Expanded(
-                          child: Text(
-                            item.toString(),
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: AppTheme.textSecondary,
-                            ),
+                        Text(
+                          item.toString(),
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                       ],
@@ -320,7 +258,7 @@ class ContentResultDisplay extends StatelessWidget {
           // Primary actions
           Row(
             children: [
-              Expanded(
+              Flexible(
                 child: ElevatedButton.icon(
                   onPressed: onSave,
                   icon: const Icon(Icons.bookmark, size: 18),
@@ -339,21 +277,19 @@ class ContentResultDisplay extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: onShare,
-                  icon: const Icon(Icons.share, size: 18),
-                  label: Text(
-                    'Share',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryOrange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+              ElevatedButton.icon(
+                onPressed: onShare,
+                icon: const Icon(Icons.share, size: 18),
+                label: Text(
+                  'Share',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),

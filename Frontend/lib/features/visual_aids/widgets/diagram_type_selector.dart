@@ -107,8 +107,10 @@ class DiagramTypeSelector extends StatelessWidget {
                           : AppTheme.surfaceColor,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(10), // Reduced from 12
                       child: Column(
+                        mainAxisSize:
+                            MainAxisSize.min, // Added to prevent overflow
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Row(
@@ -118,14 +120,14 @@ class DiagramTypeSelector extends StatelessWidget {
                                 color: isSelected
                                     ? (type['color'] as Color)
                                     : AppTheme.textSecondary,
-                                size: 20,
+                                size: 18, // Reduced from 20
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6), // Reduced from 8
                               Expanded(
                                 child: Text(
                                   type['name'] as String,
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 12, // Reduced from 13
                                     fontWeight: isSelected
                                         ? FontWeight.w600
                                         : FontWeight.w500,
@@ -139,11 +141,11 @@ class DiagramTypeSelector extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2), // Reduced from 4
                           Text(
                             type['description'] as String,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10, // Reduced from 11
                               color: AppTheme.textSecondary,
                             ),
                             maxLines: 1,

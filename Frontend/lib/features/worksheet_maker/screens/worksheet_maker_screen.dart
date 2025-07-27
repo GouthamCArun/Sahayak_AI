@@ -25,15 +25,20 @@ class _WorksheetMakerScreenState extends ConsumerState<WorksheetMakerScreen> {
   Map<String, dynamic>? _generatedWorksheet;
   String _selectedLanguage = 'en';
   String _selectedSubject = 'general';
-  List<String> _selectedGrades = ['Grade 3-4'];
+  String _selectedGrade = 'grade_3_4';
+  String _worksheetType = 'mixed';
+  String _topic = '';
+  bool _useTopicMode = false;
 
   final List<Map<String, String>> _languages = [
     {'code': 'en', 'name': 'English'},
     {'code': 'hi', 'name': 'हिंदी'},
     {'code': 'mr', 'name': 'मराठी'},
-    {'code': 'ta', 'name': 'தமিழ்'},
+    {'code': 'ta', 'name': 'தமிழ்'},
     {'code': 'bn', 'name': 'বাংলা'},
     {'code': 'gu', 'name': 'ગુજરાતી'},
+    {'code': 'kn', 'name': 'ಕನ್ನಡ'},
+    {'code': 'ml', 'name': 'മലയാളം'},
   ];
 
   final List<String> _subjects = [
@@ -89,6 +94,115 @@ class _WorksheetMakerScreenState extends ConsumerState<WorksheetMakerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Mode Toggle
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Worksheet Generation Mode',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _useTopicMode = false),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: !_useTopicMode
+                                  ? AppTheme.primaryBlue.withOpacity(0.1)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: !_useTopicMode
+                                    ? AppTheme.primaryBlue
+                                    : AppTheme.lightGray,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.camera_alt,
+                                  color: !_useTopicMode
+                                      ? AppTheme.primaryBlue
+                                      : AppTheme.textSecondary,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Image Mode',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    color: !_useTopicMode
+                                        ? AppTheme.primaryBlue
+                                        : AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _useTopicMode = true),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _useTopicMode
+                                  ? AppTheme.primaryPink.withOpacity(0.1)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: _useTopicMode
+                                    ? AppTheme.primaryPink
+                                    : AppTheme.lightGray,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.edit,
+                                  color: _useTopicMode
+                                      ? AppTheme.primaryPink
+                                      : AppTheme.textSecondary,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Topic Mode',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    color: _useTopicMode
+                                        ? AppTheme.primaryPink
+                                        : AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
           // Instructions Card
           Card(
             elevation: 2,
@@ -106,7 +220,7 @@ class _WorksheetMakerScreenState extends ConsumerState<WorksheetMakerScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'How it works',
+                        _useTopicMode ? 'Topic Mode' : 'How it works',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: AppTheme.textPrimary,
@@ -117,10 +231,15 @@ class _WorksheetMakerScreenState extends ConsumerState<WorksheetMakerScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    '1. Take a photo of textbook page or upload from gallery\n'
-                    '2. Select target grade levels and subject\n'
-                    '3. AI will extract content and create worksheets\n'
-                    '4. Get downloadable worksheets for your students',
+                    _useTopicMode
+                        ? '1. Enter a topic for your worksheet\n'
+                            '2. Select grade level, subject, and type\n'
+                            '3. AI will create a comprehensive worksheet\n'
+                            '4. Get ready-to-use educational materials'
+                        : '1. Take a photo of textbook page or upload from gallery\n'
+                            '2. Select target grade levels and subject\n'
+                            '3. AI will extract content and create worksheets\n'
+                            '4. Get downloadable worksheets for your students',
                     style: TextStyle(
                       color: AppTheme.textSecondary,
                       height: 1.5,
@@ -133,18 +252,24 @@ class _WorksheetMakerScreenState extends ConsumerState<WorksheetMakerScreen> {
 
           const SizedBox(height: 24),
 
-          // Image Selection Section
-          if (_selectedImage != null) ...[
-            ImagePreview(
-              image: _selectedImage!,
-              onRemove: () => setState(() => _selectedImage = null),
-              onReplace: () => _showImageSourceDialog(),
-            ),
+          // Topic Input Section (for Topic Mode)
+          if (_useTopicMode) ...[
+            _buildTopicInputSection(),
             const SizedBox(height: 24),
           ] else ...[
-            // Image Picker Buttons
-            _buildImagePickerSection(),
-            const SizedBox(height: 24),
+            // Image Selection Section (for Image Mode)
+            if (_selectedImage != null) ...[
+              ImagePreview(
+                image: _selectedImage!,
+                onRemove: () => setState(() => _selectedImage = null),
+                onReplace: () => _showImageSourceDialog(),
+              ),
+              const SizedBox(height: 24),
+            ] else ...[
+              // Image Picker Buttons
+              _buildImagePickerSection(),
+              const SizedBox(height: 24),
+            ],
           ],
 
           // Configuration Section
@@ -342,34 +467,81 @@ class _WorksheetMakerScreenState extends ConsumerState<WorksheetMakerScreen> {
             const SizedBox(height: 16),
 
             // Grade Selection
+            _buildDropdownField(
+              label: 'Grade Level',
+              value: _selectedGrade,
+              items: _gradeOptions
+                  .map((grade) => DropdownMenuItem(
+                        value: grade['code'],
+                        child: Text(grade['name']!),
+                      ))
+                  .toList(),
+              onChanged: (value) => setState(() => _selectedGrade = value!),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Worksheet Type Selection
+            _buildDropdownField(
+              label: 'Worksheet Type',
+              value: _worksheetType,
+              items: [
+                DropdownMenuItem(
+                    value: 'mixed', child: Text('Mixed Activities')),
+                DropdownMenuItem(value: 'practice', child: Text('Practice')),
+                DropdownMenuItem(
+                    value: 'assessment', child: Text('Assessment')),
+                DropdownMenuItem(value: 'creative', child: Text('Creative')),
+              ],
+              onChanged: (value) => setState(() => _worksheetType = value!),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopicInputSection() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              'Target Grades',
+              'Worksheet Topic',
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
                 color: AppTheme.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: _gradeOptions
-                  .map((grade) => FilterChip(
-                        label: Text(grade['name']!),
-                        selected: _selectedGrades.contains(grade['code']),
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _selectedGrades.add(grade['code']!);
-                            } else {
-                              _selectedGrades.remove(grade['code']);
-                            }
-                          });
-                        },
-                        selectedColor: AppTheme.primaryPink.withOpacity(0.2),
-                        checkmarkColor: AppTheme.primaryPink,
-                      ))
-                  .toList(),
+            const SizedBox(height: 16),
+            TextFormField(
+              initialValue: _topic,
+              onChanged: (value) => setState(() => _topic = value),
+              decoration: InputDecoration(
+                hintText:
+                    'Enter topic (e.g., Water Cycle, Addition, Parts of Speech)',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppTheme.lightGray),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppTheme.lightGray),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppTheme.primaryOrange),
+                ),
+                filled: true,
+                fillColor: AppTheme.surfaceColor,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              maxLines: 2,
             ),
           ],
         ),
@@ -399,6 +571,7 @@ class _WorksheetMakerScreenState extends ConsumerState<WorksheetMakerScreen> {
           value: value,
           items: items,
           onChanged: onChanged,
+          isExpanded: true, // Added to prevent overflow
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -410,12 +583,12 @@ class _WorksheetMakerScreenState extends ConsumerState<WorksheetMakerScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppTheme.primaryPink),
+              borderSide: BorderSide(color: AppTheme.primaryOrange),
             ),
             filled: true,
             fillColor: AppTheme.surfaceColor,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 10), // Reduced padding
           ),
         ),
       ],
@@ -502,37 +675,66 @@ class _WorksheetMakerScreenState extends ConsumerState<WorksheetMakerScreen> {
   }
 
   Future<void> _generateWorksheet() async {
-    if (_selectedImage == null || _selectedGrades.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select an image and at least one grade level'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
+    if (_useTopicMode) {
+      if (_topic.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a topic'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+    } else {
+      if (_selectedImage == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select an image'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // Convert image to base64
-      final bytes = await _selectedImage!.readAsBytes();
-      final base64Image = base64Encode(bytes);
+      Map<String, dynamic> result;
 
-      // Call API
-      final result = await ApiService.generateWorksheet(
-        image: 'data:image/jpeg;base64,$base64Image',
-        targetGrades: _selectedGrades,
-        language: _selectedLanguage,
-        subject: _selectedSubject,
-      );
+      if (_useTopicMode) {
+        // Call topic-based worksheet API
+        result = await ApiService.generateTopicWorksheet(
+          topic: _topic,
+          language: _selectedLanguage,
+          gradeLevel: _selectedGrade,
+          subject: _selectedSubject,
+          worksheetType: _worksheetType,
+        );
+      } else {
+        // Convert image to base64
+        final bytes = await _selectedImage!.readAsBytes();
+        final base64Image = base64Encode(bytes);
 
-      if (result['success'] == true) {
+        // Call image-based worksheet API
+        result = await ApiService.generateWorksheet(
+          image: 'data:image/jpeg;base64,$base64Image',
+          targetGrades: [_selectedGrade],
+          language: _selectedLanguage,
+          subject: _selectedSubject,
+        );
+      }
+
+      // Check if we have content in the response
+      if (result['worksheet_data'] != null || result['error'] != null) {
+        if (result['error'] != null) {
+          throw Exception(result['error']);
+        }
         setState(() {
-          _generatedWorksheet = result;
+          _generatedWorksheet = Map<String, dynamic>.from(result);
         });
       } else {
-        throw Exception(result['error'] ?? 'Failed to generate worksheet');
+        throw Exception('Failed to generate worksheet: No content received');
       }
     } catch (e) {
       if (mounted) {
@@ -554,7 +756,10 @@ class _WorksheetMakerScreenState extends ConsumerState<WorksheetMakerScreen> {
       _generatedWorksheet = null;
       _selectedLanguage = 'en';
       _selectedSubject = 'general';
-      _selectedGrades = ['grade_3_4'];
+      _selectedGrade = 'grade_3_4';
+      _worksheetType = 'mixed';
+      _topic = '';
+      _useTopicMode = false;
     });
   }
 }

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/markdown_renderer.dart';
 
 /// Chat message widget for displaying individual messages
 ///
@@ -123,14 +124,19 @@ class ChatMessageWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Message text
-          Text(
-            message.text,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: message.isUser ? Colors.white : AppTheme.textPrimary,
-              height: 1.4,
+          if (message.isUser)
+            Text(
+              message.text,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.white,
+                height: 1.4,
+              ),
+            )
+          else
+            MarkdownRenderer(
+              content: message.text,
             ),
-          ),
 
           // Metadata if available for AI messages
           if (!message.isUser && message.metadata != null) ...[

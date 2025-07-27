@@ -8,7 +8,7 @@ to the appropriate specialized AI agents based on the request content.
 from typing import Any, Dict, Optional, List
 import re
 
-from .base_agent import BaseAgent
+from agents.base_agent import BaseAgent
 
 
 class OrchestratorAgent(BaseAgent):
@@ -106,8 +106,14 @@ class OrchestratorAgent(BaseAgent):
         if not input_text:
             raise ValueError("No input text found in request data")
         
-        # Detect intent from the input text
-        detected_intent = self._detect_intent(input_text, user_context)
+        # Check if request type is explicitly provided (from frontend)
+        explicit_type = request_data.get("type")
+        if explicit_type and explicit_type in self.intent_patterns:
+            detected_intent = explicit_type
+            self.logger.info(f"Using explicit request type: {explicit_type}")
+        else:
+            # Detect intent from the input text
+            detected_intent = self._detect_intent(input_text, user_context)
         
         # Get routing information
         routing_info = self._get_routing_info(detected_intent, request_data)

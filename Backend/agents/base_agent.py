@@ -199,4 +199,16 @@ class BaseAgent(ABC):
         cleanup operations (close connections, release resources, etc.).
         """
         self.logger.info("Agent cleanup completed")
-        pass 
+        pass
+    
+    def get_processing_time(self) -> str:
+        """
+        Get the processing time for the last operation.
+        
+        This is a placeholder method that should be overridden
+        by agents that want to track processing time.
+        
+        Returns:
+            Processing time as a string
+        """
+        return "AI-generated" 

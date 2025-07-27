@@ -35,6 +35,8 @@ class _ReadingAssessmentScreenState
     {'code': 'ta', 'name': 'தமிழ்'},
     {'code': 'bn', 'name': 'বাংলা'},
     {'code': 'gu', 'name': 'ગુજરાતી'},
+    {'code': 'kn', 'name': 'ಕನ್ನಡ'},
+    {'code': 'ml', 'name': 'മലയാളം'},
   ];
 
   final List<Map<String, String>> _gradeLevels = [
@@ -174,7 +176,8 @@ class _ReadingAssessmentScreenState
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppTheme.primaryOrange),
+                        borderSide:
+                            const BorderSide(color: AppTheme.primaryOrange),
                       ),
                       filled: true,
                       fillColor: AppTheme.surfaceColor,
@@ -379,7 +382,7 @@ class _ReadingAssessmentScreenState
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
             color: AppTheme.textPrimary,
@@ -390,23 +393,24 @@ class _ReadingAssessmentScreenState
           value: value,
           items: items,
           onChanged: onChanged,
+          isExpanded: true, // Added to prevent overflow
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.lightGray),
+              borderSide: BorderSide(color: AppTheme.lightGray),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.lightGray),
+              borderSide: BorderSide(color: AppTheme.lightGray),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.primaryOrange),
+              borderSide: BorderSide(color: AppTheme.accentOrange),
             ),
             filled: true,
             fillColor: AppTheme.surfaceColor,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 10), // Reduced padding
           ),
         ),
       ],
@@ -450,12 +454,19 @@ class _ReadingAssessmentScreenState
         language: _selectedLanguage,
       );
 
-      if (result['success'] == true) {
+      // Check if we have assessment data in the response
+      if (result['assessment_data'] != null ||
+          result['transcription'] != null ||
+          result['error'] != null) {
+        if (result['error'] != null) {
+          throw Exception(result['error']);
+        }
         setState(() {
           _assessmentResult = result;
         });
       } else {
-        throw Exception(result['error'] ?? 'Failed to assess reading');
+        throw Exception(
+            'Failed to assess reading: No assessment data received');
       }
     } catch (e) {
       if (mounted) {

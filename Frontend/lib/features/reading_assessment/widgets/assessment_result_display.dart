@@ -83,8 +83,10 @@ class AssessmentResultDisplay extends StatelessWidget {
           const SizedBox(height: 20),
 
           // Transcription
-          if (assessmentData['transcription'] != null) ...[
-            _buildTranscriptionCard(assessmentData['transcription']),
+          if (assessment['transcription'] != null &&
+              assessment['transcription'].toString().isNotEmpty) ...[
+            _buildTranscriptionCard(
+                context, {'transcript': assessment['transcription']}),
             const SizedBox(height: 20),
           ],
 
@@ -251,7 +253,8 @@ class AssessmentResultDisplay extends StatelessWidget {
     );
   }
 
-  Widget _buildTranscriptionCard(Map<String, dynamic> transcription) {
+  Widget _buildTranscriptionCard(
+      BuildContext context, Map<String, dynamic> transcription) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -281,6 +284,12 @@ class AssessmentResultDisplay extends StatelessWidget {
                   onPressed: () =>
                       _copyToClipboard(transcription['transcript'] ?? ''),
                   tooltip: 'Copy Transcription',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chat, size: 18),
+                  onPressed: () =>
+                      _sendToChat(context, transcription['transcript'] ?? ''),
+                  tooltip: 'Ask AI about this',
                 ),
               ],
             ),
@@ -570,6 +579,31 @@ class AssessmentResultDisplay extends StatelessWidget {
 
         const SizedBox(height: 12),
 
+        // Ask AI Button (if transcription is available)
+        if (assessment['transcription'] != null &&
+            assessment['transcription'].toString().isNotEmpty) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () =>
+                  _sendToChat(context, assessment['transcription'] ?? ''),
+              icon: const Icon(Icons.chat, size: 20),
+              label: const Text('Ask AI About This Reading'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        const SizedBox(height: 12),
+
         // Secondary Actions
         Row(
           children: [
@@ -656,6 +690,22 @@ class AssessmentResultDisplay extends StatelessWidget {
 
   void _copyToClipboard(String content) {
     Clipboard.setData(ClipboardData(text: content));
+  }
+
+  void _sendToChat(BuildContext context, String transcription) {
+    if (transcription.isEmpty) {
+      return;
+    }
+
+    // Navigate to Ask AI screen with the transcription pre-filled
+    Navigator.pushNamed(
+      context,
+      '/ask-ai',
+      arguments: {
+        'prefilledText': transcription,
+        'context': 'reading_assessment',
+      },
+    );
   }
 
   void _shareAssessment(BuildContext context) {

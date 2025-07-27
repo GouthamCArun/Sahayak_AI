@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
-from .base_agent import BaseAgent
-from ..utils.logging import get_logger
+from agents.base_agent import BaseAgent
+from utils.logging import get_logger
 import google.generativeai as genai
-from ..utils.config import settings
+from utils.config import settings
 
 class VisualAidAgent(BaseAgent):
     """
@@ -23,6 +23,8 @@ class VisualAidAgent(BaseAgent):
     def __init__(self):
         super().__init__("VisualAidAgent")
         self.model = genai.GenerativeModel('gemini-pro')
+        # For image generation, we'll use a different approach
+        self.image_model = genai.GenerativeModel('gemini-pro-vision')
         
         # Diagram types and templates
         self.diagram_types = {
@@ -81,62 +83,100 @@ class VisualAidAgent(BaseAgent):
             }
         }
 
-    async def process(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, request_data: Dict[str, Any], user_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Generate visual aid based on text description
+        Generate Mermaid diagram visual aid using Gemini AI
         
         Args:
-            request: Contains concept description, diagram type, and preferences
+            request_data: Contains concept description, diagram type, and preferences
+            user_context: Optional user context (not used in this agent)
             
         Returns:
-            Dict containing generated visual aid and metadata
+            Dict containing generated Mermaid diagram and metadata
         """
         try:
             # Extract and validate input
-            concept = request.get('concept', '')
-            diagram_type = request.get('diagram_type', 'auto')
-            language = request.get('language', 'en')
-            grade_level = request.get('grade_level', 'grade_3_4')
-            subject = request.get('subject', 'general')
+            concept = request_data.get('concept', '')
+            diagram_type = request_data.get('diagram_type', 'simple')
+            language = request_data.get('language', 'en')
+            grade_level = request_data.get('grade_level', 'grade_3_4')
+            style = request_data.get('style', 'blackboard_simple')
             
             if not concept:
                 raise ValueError("No concept description provided")
             
-            # Auto-detect diagram type if not specified
-            if diagram_type == 'auto':
-                diagram_type = await self._detect_diagram_type(concept, subject)
+            self.logger.info(f"Generating visual aid for concept: {concept}")
             
-            # Generate diagram structure
-            diagram_structure = await self._generate_diagram_structure(
-                concept, diagram_type, language, grade_level, subject
-            )
-            
-            # Create visual representation
-            visual_output = await self._create_visual_diagram(
-                diagram_structure, diagram_type
-            )
-            
-            # Generate teaching instructions
-            teaching_instructions = await self._generate_teaching_instructions(
-                concept, diagram_structure, language
-            )
-            
-            return {
-                "success": True,
-                "concept": concept,
-                "diagram_type": diagram_type,
-                "visual_output": visual_output,
-                "diagram_structure": diagram_structure,
-                "teaching_instructions": teaching_instructions,
-                "metadata": {
-                    "agent": self.name,
-                    "processing_time": self.get_processing_time(),
-                    "language": language,
-                    "grade_level": grade_level,
-                    "subject": subject
+            # Generate Mermaid diagram using Gemini
+            try:
+                # Generate Mermaid diagram using Gemini
+                mermaid_result = await self._generate_mermaid_diagram_with_gemini(
+                    concept, diagram_type, language, grade_level
+                )
+                
+                # Generate teaching instructions
+                teaching_data = await self._generate_teaching_instructions(
+                    concept, {"title": concept, "description": f"Educational diagram for {concept}"}, language
+                )
+                
+                return {
+                    "diagram_description": f"Educational Mermaid diagram for {concept}",
+                    "mermaid_code": mermaid_result["mermaid_code"],
+                    "diagram_type": diagram_type,
+                    "drawing_instructions": mermaid_result.get("drawing_instructions", []),
+                    "teaching_instructions": teaching_data.get("instructions", []),
+                    "key_points": teaching_data.get("key_points", []),
+                    "metadata": {
+                        "concept": concept,
+                        "diagram_type": diagram_type,
+                        "language": language,
+                        "grade_level": grade_level,
+                        "style": "mermaid_diagram",
+                        "estimated_time": "5-10 minutes"
+                    },
+                    "materials_needed": ["chalk/marker", "blackboard/whiteboard", "eraser"],
+                    "teaching_tips": teaching_data.get("tips", []),
+                    "model_used": "gemini-pro",
+                    "generation_method": "AI-generated Mermaid diagram",
+                    "gemini_model": "gemini-pro"
                 }
-            }
-            
+                
+            except Exception as e:
+                self.logger.error(f"Visual diagram generation failed: {str(e)}")
+                self.logger.info("Using fallback visual aid")
+                
+                # Fallback to simple diagram generation
+                try:
+                    # Create a simple fallback structure
+                    fallback_structure = self._create_fallback_structure(concept, diagram_type)
+                    
+                    # Create visual diagram from fallback structure
+                    visual_result = await self._create_visual_diagram(fallback_structure, diagram_type)
+                    
+                    return {
+                        "diagram_description": f"Simple educational diagram for {concept}",
+                        "image_base64": visual_result["image_base64"],
+                        "image_format": visual_result["format"],
+                        "image_width": visual_result["width"],
+                        "image_height": visual_result["height"],
+                        "drawing_instructions": fallback_structure.get("drawing_instructions", []),
+                        "teaching_instructions": [],
+                        "key_points": [f"Learn about {concept}"],
+                        "metadata": {
+                            "concept": concept,
+                            "diagram_type": diagram_type,
+                            "language": language,
+                            "grade_level": grade_level,
+                            "style": "blackboard_simple",
+                            "estimated_time": "5-10 minutes"
+                        },
+                        "materials_needed": ["chalk/marker", "blackboard/whiteboard", "eraser"],
+                        "teaching_tips": ["Use this diagram to explain the concept step by step"]
+                    }
+                except Exception as fallback_error:
+                    self.logger.error(f"Fallback also failed: {str(fallback_error)}")
+                    raise
+
         except Exception as e:
             self.logger.error(f"Visual aid generation failed: {str(e)}")
             return {
@@ -144,6 +184,388 @@ class VisualAidAgent(BaseAgent):
                 "error": str(e),
                 "agent": self.name
             }
+
+    async def _generate_mermaid_diagram_with_gemini(self, concept: str, diagram_type: str, language: str, grade_level: str) -> Dict[str, Any]:
+        """Generate Mermaid diagram using Gemini Pro"""
+        
+        # Map diagram types to Mermaid diagram types
+        mermaid_type_map = {
+            "concept_map": "mindmap",
+            "flowchart": "flowchart",
+            "timeline": "gantt",
+            "cycle_diagram": "graph",
+            "comparison_chart": "graph",
+            "labeled_diagram": "graph",
+            "graph_chart": "graph",
+            "simple": "graph"
+        }
+        
+        mermaid_type = mermaid_type_map.get(diagram_type, "graph")
+        
+        prompt = f"""Create a Mermaid diagram for the concept "{concept}" for {grade_level} students.
+
+Requirements:
+- Use Mermaid syntax for {mermaid_type} diagram type
+- Simple, educational design suitable for classroom teaching
+- Age-appropriate for {grade_level} students
+- Language: {language}
+- Include clear labels and relationships
+- Make it easy for teachers to draw on blackboard
+- Use simple shapes and clear text
+
+Concept: {concept}
+Diagram Type: {diagram_type}
+Target Audience: {grade_level} students
+
+Please generate ONLY the Mermaid code without any explanation or markdown formatting. The response should start with the diagram type (e.g., "graph TD" or "flowchart TD") and contain only valid Mermaid syntax.
+
+Example format for flowchart:
+flowchart TD
+    A[Start] --> B[Process]
+    B --> C[End]
+
+Example format for mindmap:
+mindmap
+  root((Main Topic))
+    Subtopic 1
+    Subtopic 2
+      Detail 1
+      Detail 2
+
+Generate the Mermaid diagram:"""
+
+        try:
+            response = self.model.generate_content(prompt)
+            
+            if response.text:
+                # Extract Mermaid code from response
+                mermaid_code = response.text.strip()
+                
+                # Clean up the response to get just the Mermaid code
+                if "```mermaid" in mermaid_code:
+                    # Extract from markdown code block
+                    start = mermaid_code.find("```mermaid") + 9
+                    end = mermaid_code.find("```", start)
+                    if end != -1:
+                        mermaid_code = mermaid_code[start:end].strip()
+                elif "```" in mermaid_code:
+                    # Extract from generic code block
+                    start = mermaid_code.find("```") + 3
+                    end = mermaid_code.find("```", start)
+                    if end != -1:
+                        mermaid_code = mermaid_code[start:end].strip()
+                
+                # Generate drawing instructions
+                drawing_instructions = self._generate_drawing_instructions_from_mermaid(mermaid_code, concept)
+                
+                return {
+                    "mermaid_code": mermaid_code,
+                    "drawing_instructions": drawing_instructions,
+                    "diagram_type": diagram_type
+                }
+            else:
+                raise Exception("No content generated by Gemini")
+                
+        except Exception as e:
+            self.logger.error(f"Mermaid diagram generation failed: {str(e)}")
+            # Return fallback Mermaid diagram
+            return {
+                "mermaid_code": f"graph TD\n    A[{concept}] --> B[Learn]\n    B --> C[Understand]",
+                "drawing_instructions": [f"Draw a simple diagram showing {concept}"],
+                "diagram_type": diagram_type
+            }
+    
+    def _generate_drawing_instructions_from_mermaid(self, mermaid_code: str, concept: str) -> List[str]:
+        """Generate drawing instructions from Mermaid code"""
+        instructions = []
+        
+        # Simple parsing of Mermaid code to generate drawing instructions
+        if "flowchart" in mermaid_code or "graph" in mermaid_code:
+            instructions.append(f"Start by drawing the main concept: {concept}")
+            instructions.append("Add boxes for each step or component")
+            instructions.append("Connect the boxes with arrows showing the flow")
+        elif "mindmap" in mermaid_code:
+            instructions.append(f"Draw the main topic '{concept}' in the center")
+            instructions.append("Add branches for subtopics")
+            instructions.append("Connect with lines to show relationships")
+        elif "gantt" in mermaid_code:
+            instructions.append("Draw a timeline with dates or steps")
+            instructions.append("Add bars to show duration of activities")
+        
+        instructions.append("Use clear, simple shapes that are easy to draw")
+        instructions.append("Add labels to explain each part")
+        
+        return instructions
+
+    async def _generate_hand_drawable_image_with_gemini(self, concept: str, diagram_type: str, language: str, grade_level: str) -> Dict[str, Any]:
+        """Generate hand-drawable educational image using Gemini AI"""
+        
+        # Create a detailed prompt for image generation
+        image_prompt = f"""Create a simple, hand-drawable educational diagram for teaching "{concept}" to {grade_level} students.
+
+Style requirements:
+- Simple line drawing style that a teacher can easily draw on a blackboard with chalk
+- Clean, minimal design with clear lines
+- Use basic geometric shapes (circles, squares, triangles, lines, arrows)
+- High contrast black and white design
+- No complex shading or gradients
+- Large, readable text labels
+- Educational and age-appropriate for {grade_level} students
+- Language: {language}
+
+Diagram type: {diagram_type}
+
+The image should be:
+1. Easy to replicate by hand on a blackboard
+2. Clear and educational
+3. Suitable for rural Indian classroom settings
+4. Simple enough for students to understand and teachers to draw
+
+Concept: {concept}
+
+Please create a clean, simple diagram that shows the key elements of {concept} in a way that can be easily drawn with chalk on a blackboard."""
+        
+        try:
+            # Use Gemini Pro to generate detailed image description
+            # Then create image using matplotlib with Gemini's guidance
+            
+            # Generate detailed image description using Gemini Pro
+            image_description = await self._generate_image_description_with_gemini(
+                concept, diagram_type, language, grade_level
+            )
+            
+            # Create detailed drawing instructions
+            drawing_instructions = self._generate_drawing_instructions(concept, diagram_type, grade_level)
+            
+            # Create a diagram structure with Gemini's guidance
+            diagram_structure = {
+                "title": concept,
+                "description": image_description.get("description", f"Educational diagram for {concept}"),
+                "elements": drawing_instructions["elements"],
+                "connections": drawing_instructions.get("connections", []),
+                "drawing_instructions": image_description.get("steps", drawing_instructions["steps"]),
+                "teaching_tips": image_description.get("tips", drawing_instructions["tips"]),
+                "style_guide": image_description.get("style_guide", {})
+            }
+            
+            # Create image using matplotlib with Gemini's guidance
+            image_result = await self._create_gemini_guided_image(diagram_structure, diagram_type)
+            
+            return {
+                "image_base64": image_result["image_base64"],
+                "format": "png",
+                "width": 800,
+                "height": 600,
+                "description": diagram_structure["description"],
+                "drawing_instructions": diagram_structure["drawing_instructions"],
+                "teaching_tips": diagram_structure["teaching_tips"]
+            }
+                
+        except Exception as e:
+            self.logger.error(f"Gemini image generation failed: {str(e)}")
+            # Fallback to simple diagram
+            return await self._create_simple_fallback_image(concept, diagram_type)
+
+    def _generate_drawing_instructions(self, concept: str, diagram_type: str, grade_level: str) -> Dict[str, Any]:
+        """Generate detailed drawing instructions for hand-drawable diagrams"""
+        
+        concept_lower = concept.lower()
+        
+        if "water cycle" in concept_lower:
+            return {
+                "elements": [
+                    {"id": "sun", "label": "Sun", "position": "top-right", "type": "main"},
+                    {"id": "clouds", "label": "Clouds", "position": "top-center", "type": "main"},
+                    {"id": "rain", "label": "Rain", "position": "center", "type": "main"},
+                    {"id": "ocean", "label": "Ocean", "position": "bottom", "type": "main"},
+                    {"id": "plants", "label": "Plants", "position": "bottom-left", "type": "secondary"}
+                ],
+                "connections": [
+                    {"from": "ocean", "to": "clouds", "label": "Evaporation"},
+                    {"from": "clouds", "to": "rain", "label": "Condensation"},
+                    {"from": "rain", "to": "ocean", "label": "Collection"}
+                ],
+                "steps": [
+                    "Draw a large sun in the top-right corner",
+                    "Draw fluffy clouds in the top-center",
+                    "Draw raindrops falling from clouds",
+                    "Draw a wavy ocean at the bottom",
+                    "Draw simple plants and trees",
+                    "Add arrows showing water flow cycle"
+                ],
+                "tips": [
+                    "Start with the sun and explain evaporation",
+                    "Show how water moves through the cycle",
+                    "Use different colored chalk for arrows"
+                ]
+            }
+        elif "plant" in concept_lower or "parts" in concept_lower:
+            return {
+                "elements": [
+                    {"id": "roots", "label": "Roots", "position": "bottom", "type": "main"},
+                    {"id": "stem", "label": "Stem", "position": "center", "type": "main"},
+                    {"id": "leaves", "label": "Leaves", "position": "top-left", "type": "main"},
+                    {"id": "flower", "label": "Flower", "position": "top-right", "type": "main"}
+                ],
+                "connections": [],
+                "steps": [
+                    "Draw roots at the bottom",
+                    "Draw a straight stem in the center",
+                    "Draw leaves on the sides",
+                    "Draw a flower at the top",
+                    "Add labels for each part"
+                ],
+                "tips": [
+                    "Explain each part's function",
+                    "Show how parts work together",
+                    "Use simple shapes for each part"
+                ]
+            }
+        else:
+            # Generic diagram
+            return {
+                "elements": [
+                    {"id": "main", "label": concept, "position": "center", "type": "main"}
+                ],
+                "connections": [],
+                "steps": [
+                    f"Draw a simple diagram showing {concept}",
+                    "Add clear labels",
+                    "Use simple shapes and lines"
+                ],
+                "tips": [
+                    f"Explain {concept} step by step",
+                    "Use simple language for {grade_level} students",
+                    "Encourage students to ask questions"
+                ]
+            }
+
+    def _generate_mock_blackboard_diagram(self, concept: str, diagram_type: str, language: str) -> Dict[str, Any]:
+        """Generate mock blackboard diagram for fallback"""
+        
+        concept_lower = concept.lower()
+        
+        if "water cycle" in concept_lower or "water" in concept_lower:
+            return {
+                "description": "Simple blackboard drawing of the water cycle showing sun, clouds, rain, and water body",
+                "ascii_art": """
+    ☀️ (sun)
+        ☁️ ☁️ (clouds)
+      💧💧💧 (rain)
+    ↗️  evaporation  ↖️
+    🌊~~~~~~~~~~~🌊 (water body)
+    🌱🌳 (plants)
+                """,
+                "instructions": [
+                    "Draw the sun in the top right corner",
+                    "Draw 2-3 clouds in the sky",
+                    "Draw wavy lines from water to clouds (evaporation)",
+                    "Draw rain drops falling from clouds",
+                    "Draw a water body (river/lake) at the bottom",
+                    "Add simple trees and plants",
+                    "Draw arrows to show the cycle direction",
+                    "Label each part: Sun, Clouds, Rain, Water"
+                ],
+                "teaching_tips": [
+                    "Start with the sun - explain it heats the water",
+                    "Show how water rises as vapor (invisible)",
+                    "Explain how clouds form when vapor cools",
+                    "Demonstrate rain falling back to earth",
+                    "Emphasize it's a never-ending cycle"
+                ]
+            }
+            
+        elif "photo" in concept_lower or "plant" in concept_lower:
+            return {
+                "description": "Simple diagram showing how plants make food using sunlight, water, and air",
+                "ascii_art": """
+    ☀️ (sunlight)
+       ↓
+    🌿🍃 (leaves)
+    |  |
+    🌱 (stem)
+    |
+   🌰 (roots)
+   💧 (water)
+                """,
+                "instructions": [
+                    "Draw a simple plant with leaves, stem, and roots",
+                    "Draw the sun above the plant",
+                    "Draw arrows from sun to leaves",
+                    "Draw water drops near the roots",
+                    "Draw CO2 symbols in the air",
+                    "Show oxygen being released from leaves",
+                    "Label: Sunlight, Water, CO2, Oxygen"
+                ],
+                "teaching_tips": [
+                    "Explain that plants are like tiny food factories",
+                    "Show how they need 3 ingredients: sun, water, air",
+                    "Emphasize they make oxygen for us to breathe"
+                ]
+            }
+            
+        else:
+            # Generic diagram template
+            return {
+                "description": f"Simple blackboard diagram explaining {concept} in easy steps",
+                "ascii_art": f"""
+    📝 {concept.upper()}
+    
+    Step 1: ○ ——→ □
+    
+    Step 2: □ ——→ △
+    
+    Step 3: △ ——→ ★
+    
+    Result: {concept} explained!
+                """,
+                "instructions": [
+                    f"Write '{concept}' as the title",
+                    "Draw simple shapes to represent main ideas",
+                    "Connect shapes with arrows to show process",
+                    "Add labels to explain each step",
+                    "Use simple symbols students can recognize"
+                ],
+                "teaching_tips": [
+                    f"Break down {concept} into simple steps",
+                    "Use familiar examples from daily life",
+                    "Encourage students to ask questions",
+                    "Let students help draw parts of the diagram"
+                ]
+            }
+    
+    def _extract_ascii_from_text(self, text: str) -> str:
+        """Extract ASCII art from Gemini response text"""
+        # Simple extraction - look for patterns that look like ASCII art
+        lines = text.split('\n')
+        ascii_lines = []
+        in_ascii = False
+        
+        for line in lines:
+            if any(char in line for char in ['|', '-', '+', '*', '~', '^', 'o', '○', '□', '△']):
+                ascii_lines.append(line)
+                in_ascii = True
+            elif in_ascii and len(line.strip()) == 0:
+                ascii_lines.append(line)
+            elif in_ascii and len(ascii_lines) > 3:
+                break
+                
+        return '\n'.join(ascii_lines) if ascii_lines else f"Simple diagram of {concept}"
+    
+    def _extract_instructions_from_text(self, text: str) -> List[str]:
+        """Extract numbered instructions from Gemini response"""
+        lines = text.split('\n')
+        instructions = []
+        
+        for line in lines:
+            line = line.strip()
+            if line and (line[0].isdigit() or line.startswith('-') or line.startswith('•')):
+                # Clean up the instruction
+                instruction = line.lstrip('0123456789.-• ').strip()
+                if instruction:
+                    instructions.append(instruction)
+                    
+        return instructions if instructions else [f"Draw a simple diagram showing {concept}"]
 
     async def _detect_diagram_type(self, concept: str, subject: str) -> str:
         """
@@ -283,6 +705,278 @@ class VisualAidAgent(BaseAgent):
             "colors": self.style_guidelines["colors"],
             "notes": "Simple diagram structure"
         }
+
+    async def _create_gemini_guided_image(
+        self, 
+        structure: Dict[str, Any], 
+        diagram_type: str
+    ) -> Dict[str, Any]:
+        """
+        Create image using matplotlib with Gemini's guidance
+        
+        Args:
+            structure: Diagram structure with Gemini's guidance
+            diagram_type: Type of diagram to create
+            
+        Returns:
+            Visual output data including image
+        """
+        try:
+            # Set up the figure with Gemini's style guidance
+            fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+            ax.set_xlim(0, 10)
+            ax.set_ylim(0, 8)
+            ax.axis('off')
+            
+            # Apply Gemini's style guide
+            style_guide = structure.get("style_guide", {})
+            colors = style_guide.get("colors", ["black", "white"])
+            shapes = style_guide.get("shapes", ["simple"])
+            layout = style_guide.get("layout", "central")
+            
+            # Set background
+            fig.patch.set_facecolor('white')
+            ax.set_facecolor('white')
+            
+            # Draw elements based on Gemini's guidance
+            elements = structure.get("elements", [])
+            connections = structure.get("connections", [])
+            
+            # Position mapping
+            positions = {
+                "center": (5, 4),
+                "top": (5, 6.5),
+                "bottom": (5, 1.5),
+                "left": (2, 4),
+                "right": (8, 4),
+                "top-left": (2, 6.5),
+                "top-right": (8, 6.5),
+                "bottom-left": (2, 1.5),
+                "bottom-right": (8, 1.5)
+            }
+            
+            # Draw elements with Gemini's style
+            for element in elements:
+                pos = positions.get(element.get("position", "center"), (5, 4))
+                label = element.get("label", "")
+                element_type = element.get("type", "main")
+                
+                # Apply Gemini's shape guidance
+                if "circles" in shapes or "simple" in shapes:
+                    if element_type == "main":
+                        circle = plt.Circle(pos, 0.8, fill=False, color=colors[0], linewidth=3)
+                        ax.add_patch(circle)
+                    else:
+                        circle = plt.Circle(pos, 0.5, fill=False, color=colors[0], linewidth=2)
+                        ax.add_patch(circle)
+                else:
+                    # Default rectangle
+                    rect = plt.Rectangle((pos[0]-0.6, pos[1]-0.4), 1.2, 0.8, 
+                                       fill=False, color=colors[0], linewidth=3)
+                    ax.add_patch(rect)
+                
+                # Add label
+                ax.text(pos[0], pos[1], label, ha='center', va='center', 
+                       fontsize=12, fontweight='bold', color=colors[0])
+            
+            # Draw connections with arrows
+            for connection in connections:
+                from_pos = positions.get(connection.get("from", "center"), (5, 4))
+                to_pos = positions.get(connection.get("to", "center"), (5, 4))
+                label = connection.get("label", "")
+                
+                # Draw arrow
+                ax.annotate('', xy=to_pos, xytext=from_pos,
+                           arrowprops=dict(arrowstyle='->', lw=2, color=colors[0]))
+                
+                # Add connection label
+                mid_x = (from_pos[0] + to_pos[0]) / 2
+                mid_y = (from_pos[1] + to_pos[1]) / 2
+                ax.text(mid_x, mid_y, label, ha='center', va='center',
+                       fontsize=10, color=colors[0], bbox=dict(boxstyle="round,pad=0.3", 
+                       facecolor='white', edgecolor=colors[0], linewidth=1))
+            
+            # Add title
+            plt.title(structure.get("title", "Educational Diagram"), 
+                     fontsize=16, fontweight='bold', color=colors[0], pad=20)
+            
+            # Save to base64
+            buffer = io.BytesIO()
+            plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight',
+                       facecolor='white', edgecolor='none')
+            buffer.seek(0)
+            
+            # Convert to base64
+            image_base64 = base64.b64encode(buffer.getvalue()).decode()
+            plt.close()
+            
+            return {
+                "image_base64": image_base64,
+                "format": "png",
+                "width": 800,
+                "height": 600,
+                "description": f"Gemini-guided {diagram_type} for {structure.get('title', 'concept')}",
+                "model_used": "gemini-pro + matplotlib",
+                "generation_method": "AI-guided image creation"
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Gemini-guided image creation failed: {str(e)}")
+            raise
+
+    async def _create_hand_drawable_image(
+        self, 
+        structure: Dict[str, Any], 
+        diagram_type: str
+    ) -> Dict[str, Any]:
+        """
+        Create a hand-drawable style image using matplotlib
+        
+        Args:
+            structure: Diagram structure data
+            diagram_type: Type of diagram to create
+            
+        Returns:
+            Visual output data including image
+        """
+        try:
+            # Set up the figure with hand-drawn style
+            fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+            ax.set_xlim(0, 10)
+            ax.set_ylim(0, 8)
+            ax.axis('off')
+            
+            # Set background color to white (like paper)
+            fig.patch.set_facecolor('white')
+            ax.set_facecolor('white')
+            
+            # Draw elements in hand-drawn style
+            elements = structure.get("elements", [])
+            connections = structure.get("connections", [])
+            
+            # Position mapping for hand-drawn style
+            positions = {
+                "center": (5, 4),
+                "top": (5, 6.5),
+                "bottom": (5, 1.5),
+                "left": (2, 4),
+                "right": (8, 4),
+                "top-left": (2, 6.5),
+                "top-right": (8, 6.5),
+                "bottom-left": (2, 1.5),
+                "bottom-right": (8, 1.5)
+            }
+            
+            # Draw elements with hand-drawn style
+            for element in elements:
+                pos = positions.get(element.get("position", "center"), (5, 4))
+                label = element.get("label", "")
+                element_type = element.get("type", "main")
+                
+                # Draw simple shapes (hand-drawn style)
+                if element_type == "main":
+                    # Draw a simple circle or rectangle
+                    circle = plt.Circle(pos, 0.8, fill=False, color='black', linewidth=3)
+                    ax.add_patch(circle)
+                else:
+                    # Draw a smaller shape for secondary elements
+                    circle = plt.Circle(pos, 0.5, fill=False, color='black', linewidth=2)
+                    ax.add_patch(circle)
+                
+                # Add label with hand-drawn style font
+                ax.text(pos[0], pos[1], label, ha='center', va='center', 
+                       fontsize=12, fontweight='bold', color='black')
+            
+            # Draw connections with arrows
+            for connection in connections:
+                from_pos = positions.get(connection.get("from", "center"), (5, 4))
+                to_pos = positions.get(connection.get("to", "center"), (5, 4))
+                label = connection.get("label", "")
+                
+                # Draw arrow
+                ax.annotate('', xy=to_pos, xytext=from_pos,
+                           arrowprops=dict(arrowstyle='->', lw=2, color='black'))
+                
+                # Add connection label
+                mid_x = (from_pos[0] + to_pos[0]) / 2
+                mid_y = (from_pos[1] + to_pos[1]) / 2
+                ax.text(mid_x, mid_y, label, ha='center', va='center',
+                       fontsize=10, color='black', bbox=dict(boxstyle="round,pad=0.3", 
+                       facecolor='white', edgecolor='black', linewidth=1))
+            
+            # Add title
+            plt.title(structure.get("title", "Educational Diagram"), 
+                     fontsize=16, fontweight='bold', color='black', pad=20)
+            
+            # Save to base64 with high quality
+            buffer = io.BytesIO()
+            plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight',
+                       facecolor='white', edgecolor='none')
+            buffer.seek(0)
+            
+            # Convert to base64
+            image_base64 = base64.b64encode(buffer.getvalue()).decode()
+            plt.close()
+            
+            return {
+                "image_base64": image_base64,
+                "format": "png",
+                "width": 800,
+                "height": 600,
+                "description": f"Hand-drawable {diagram_type} for {structure.get('title', 'concept')}"
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Hand-drawable image creation failed: {str(e)}")
+            raise
+
+    async def _create_simple_fallback_image(self, concept: str, diagram_type: str) -> Dict[str, Any]:
+        """Create a simple fallback image when main generation fails"""
+        try:
+            fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+            ax.set_xlim(0, 10)
+            ax.set_ylim(0, 8)
+            ax.axis('off')
+            
+            # Set background
+            fig.patch.set_facecolor('white')
+            ax.set_facecolor('white')
+            
+            # Draw a simple diagram
+            ax.text(5, 4, concept, ha='center', va='center', 
+                   fontsize=20, fontweight='bold', color='black')
+            
+            # Add a simple border
+            rect = plt.Rectangle((1, 1), 8, 6, fill=False, color='black', linewidth=2)
+            ax.add_patch(rect)
+            
+            # Save to base64
+            buffer = io.BytesIO()
+            plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight',
+                       facecolor='white', edgecolor='none')
+            buffer.seek(0)
+            
+            image_base64 = base64.b64encode(buffer.getvalue()).decode()
+            plt.close()
+            
+            return {
+                "image_base64": image_base64,
+                "format": "png",
+                "width": 800,
+                "height": 600,
+                "description": f"Simple diagram for {concept}"
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Fallback image creation failed: {str(e)}")
+            # Return empty image data
+            return {
+                "image_base64": "",
+                "format": "png",
+                "width": 800,
+                "height": 600,
+                "description": f"Could not generate image for {concept}"
+            }
 
     async def _create_visual_diagram(
         self, 

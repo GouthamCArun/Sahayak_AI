@@ -52,6 +52,8 @@ class _ContentGeneratorScreenState
     {'code': 'ta', 'name': 'Tamil', 'native': 'தமிழ்'},
     {'code': 'bn', 'name': 'Bengali', 'native': 'বাংলা'},
     {'code': 'gu', 'name': 'Gujarati', 'native': 'ગુજરાતી'},
+    {'code': 'kn', 'name': 'Kannada', 'native': 'ಕನ್ನಡ'},
+    {'code': 'ml', 'name': 'Malayalam', 'native': 'മലയാളം'},
   ];
 
   final List<Map<String, String>> _gradeLevels = [
@@ -527,7 +529,7 @@ class _ContentGeneratorScreenState
       );
 
       setState(() {
-        _generatedContent = result;
+        _generatedContent = Map<String, dynamic>.from(result);
         _isLoading = false;
       });
     } catch (e) {

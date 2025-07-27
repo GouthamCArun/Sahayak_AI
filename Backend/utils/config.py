@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, description="Token expiry in minutes")
     
     # Google AI Services
-    GOOGLE_API_KEY: str = Field(..., description="Google Gemini API key")
+    GOOGLE_API_KEY: str = "AIzaSyD-example-key-please-replace"  # Default for testing = Field(..., description="Google Gemini API key")
     GOOGLE_APPLICATION_CREDENTIALS: str = Field(..., description="Path to Google service account key")
     
     # Firebase Configuration

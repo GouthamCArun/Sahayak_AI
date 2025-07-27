@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/markdown_renderer.dart';
 
 class WorksheetResultDisplay extends StatelessWidget {
   final Map<String, dynamic> worksheet;
@@ -79,7 +80,8 @@ class WorksheetResultDisplay extends StatelessWidget {
 
           // Worksheet Content
           if (worksheetData['worksheets'] != null) ...[
-            ...((worksheetData['worksheets'] as List)
+            ...((worksheetData['worksheets'] as Map<String, dynamic>)
+                .values
                 .map((ws) => _buildWorksheetCard(ws))),
           ] else ...[
             _buildSingleWorksheetCard(worksheetData),
@@ -176,13 +178,8 @@ class WorksheetResultDisplay extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: AppTheme.lightGray),
               ),
-              child: Text(
-                worksheetData['content'] ?? 'No content available',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.textPrimary,
-                  height: 1.5,
-                ),
+              child: MarkdownRenderer(
+                content: worksheetData['content'] ?? 'No content available',
               ),
             ),
 

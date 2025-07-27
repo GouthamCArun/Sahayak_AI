@@ -32,22 +32,22 @@ def main():
     optimized for rural Indian school environments.
     """
     logger.info("Starting Sahaayak AI Backend Server...")
-    logger.info(f"Environment: {'Production' if not settings.debug else 'Development'}")
-    logger.info(f"Server: {settings.server_host}:{settings.server_port}")
+    logger.info(f"Environment: {'Production' if not settings.DEBUG else 'Development'}")
+    logger.info(f"Server: {settings.APP_NAME}:{settings.APP_VERSION}")
     
     # Configure uvicorn settings
     uvicorn_config = {
         "app": "main:app",
-        "host": settings.server_host,
-        "port": settings.server_port,
-        "workers": settings.server_workers if not settings.debug else 1,
-        "log_level": settings.log_level.lower(),
-        "reload": settings.debug,
+        "host": "0.0.0.0",
+        "port": 8000,
+        "workers": 1,
+        "log_level": "info",
+        "reload": settings.DEBUG,
         "access_log": True,
     }
     
     # Add SSL configuration for production
-    if not settings.debug and os.getenv("SSL_KEYFILE") and os.getenv("SSL_CERTFILE"):
+    if not settings.DEBUG and os.getenv("SSL_KEYFILE") and os.getenv("SSL_CERTFILE"):
         uvicorn_config.update({
             "ssl_keyfile": os.getenv("SSL_KEYFILE"),
             "ssl_certfile": os.getenv("SSL_CERTFILE"),
